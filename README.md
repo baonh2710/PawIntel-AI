@@ -203,7 +203,7 @@ echo > .env
 
 ✅ Phải dùng:
 
-```powershell
+```powershell 
 "TEXT" | Out-File .env
 
 ```
