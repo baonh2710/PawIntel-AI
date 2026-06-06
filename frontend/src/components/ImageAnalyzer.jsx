@@ -1,25 +1,41 @@
 import { useState } from "react";
 
-// Component phụ: Thanh phần trăm (Progress Bar) kẹo ngọt
-const CuteProgressBar = ({ percent, color = "bg-orange-400" }) => (
-  <div className="w-full bg-orange-100 rounded-full h-3.5 mt-2 overflow-hidden shadow-inner">
+// Component phụ: Thanh phần trăm kẹo ngọt (Update sang tone Hồng/Rose)
+const CuteProgressBar = ({ percent, color = "bg-rose-400" }) => (
+  <div className="w-full bg-rose-50 rounded-full h-3.5 mt-3 overflow-hidden shadow-inner">
     <div
-      className={`${color} h-3.5 rounded-full transition-all duration-1000 ease-out`}
+      className={`${color} h-3.5 rounded-full transition-all duration-1000 ease-out relative overflow-hidden`}
       style={{ width: `${percent}%` }}
-    ></div>
+    >
+      {/* Hiệu ứng bóng bẩy nhẹ trên thanh progress */}
+      <div className="absolute top-0 left-0 w-full h-full bg-white/20 skew-x-[-20deg] transform -translate-x-full animate-[shimmer_2s_infinite]"></div>
+    </div>
+  </div>
+);
+
+// Component phụ: Góc nhắc nhở (Tips & Advice)
+const AdviceCard = ({ icon, title, text, colorClass }) => (
+  <div className={`p-4 rounded-3xl border border-transparent ${colorClass} transition-transform hover:scale-[1.01]`}>
+    <div className="flex gap-3 items-start">
+      <span className="text-2xl">{icon}</span>
+      <div>
+        <h4 className="font-bold text-sm mb-1">{title}</h4>
+        <p className="text-sm font-medium leading-relaxed opacity-90">{text}</p>
+      </div>
+    </div>
   </div>
 );
 
 const ImageAnalyzer = () => {
-  // 1. Quản lý trạng thái (State)
+  // --- STATE MANAGEMENT ---
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState(null); // Giờ sẽ chứa { success, message, predictions: [] }
+  const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
-  // 2. Logic Xử lý File
+  // --- LOGIC XỬ LÝ FILE ---
   const validateAndSetFile = (selectedFile) => {
     setError(null);
     setResult(null);
@@ -40,28 +56,14 @@ const ImageAnalyzer = () => {
     setPreview(URL.createObjectURL(selectedFile));
   };
 
-  const handleFileChange = (e) => {
-    validateAndSetFile(e.target.files[0]);
-  };
-
-  // Logic Kéo Thả (Drag & Drop)
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragOver(true);
-  };
-
+  const handleFileChange = (e) => validateAndSetFile(e.target.files[0]);
+  const handleDragOver = (e) => { e.preventDefault(); setIsDragOver(true); };
   const handleDragLeave = () => setIsDragOver(false);
+  const handleDrop = (e) => { e.preventDefault(); setIsDragOver(false); validateAndSetFile(e.dataTransfer.files[0]); };
 
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    validateAndSetFile(e.dataTransfer.files[0]);
-  };
-
-  // 3. Logic Giao tiếp Backend (Fetch API)
+  // --- LOGIC GỌI API ---
   const handleAnalyze = async () => {
     if (!file) return;
-
     setIsLoading(true);
     setError(null);
 
@@ -73,13 +75,8 @@ const ImageAnalyzer = () => {
         method: "POST",
         body: formData,
       });
-
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Có lỗi từ vũ trụ máy chủ rồi! 🛸");
-      }
-
+      if (!response.ok) throw new Error(data.error || "Có lỗi từ vũ trụ máy chủ rồi! 🛸");
       setResult(data);
     } catch (err) {
       setError(err.message);
@@ -88,192 +85,211 @@ const ImageAnalyzer = () => {
     }
   };
 
-  // 4. Render UI
+  // --- RENDER UI ---
   return (
-    <div className="max-w-xl mx-auto p-6 md:p-8 bg-[#fffcf5] rounded-[2rem] shadow-xl border-2 border-orange-100 font-sans text-gray-800">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-extrabold text-orange-600 tracking-tight flex items-center justify-center gap-2">
-          <span>🐾</span> Trạm Soi Cún Cưng <span>✨</span>
-        </h2>
-        <p className="text-orange-400 font-medium mt-2 text-sm">
-          Upload ảnh boss lên đây để AI "bắt mạch" xem giống gì nha!
-        </p>
-      </div>
+    <div className="min-h-screen bg-[#faf9f6] text-gray-800 font-sans p-4 md:p-8 lg:p-12">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+        
+        {/* ================= CỘT TRÁI: UPLOAD & TIPS ================= */}
+        <div className="lg:col-span-5 space-y-8">
+          
+          {/* Header */}
+          <div>
+            <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight flex items-center gap-3">
+              <span>🐾</span> Trạm Soi Cún
+            </h1>
+            <p className="text-gray-500 font-medium mt-3 text-sm md:text-base leading-relaxed">
+              Tải ảnh lên hoặc kéo thả vào khung bên dưới. Hệ thống sẽ "nhìn ngắm" diện mạo của bé và dự đoán giống chó giúp bạn!
+            </p>
+          </div>
 
-      {/* Khu vực Upload / Drag & Drop */}
-      <div
-        className={`relative flex flex-col items-center justify-center p-8 border-4 border-dashed rounded-[1.5rem] transition-all duration-300 ease-in-out ${
-          isDragOver
-            ? "border-orange-400 bg-orange-50 scale-[1.02]"
-            : "border-orange-200 bg-white"
-        } hover:border-orange-300 hover:bg-orange-50/50 cursor-pointer shadow-sm`}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-        />
-        {preview ? (
-          <div className="relative group w-full flex justify-center">
-            <img
-              src={preview}
-              alt="Preview boss"
-              className="h-56 object-cover rounded-2xl shadow-md border-2 border-orange-100 transition-transform group-hover:scale-105"
+          {/* Khung Upload */}
+          <div
+            className={`relative flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-[2.5rem] transition-all duration-300 ease-out ${
+              isDragOver
+                ? "border-rose-400 bg-rose-50 scale-[1.02]"
+                : "border-gray-200 bg-white hover:border-rose-300 hover:bg-rose-50/30 hover:shadow-xl hover:shadow-rose-100/50"
+            } cursor-pointer group`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
             />
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/40 rounded-2xl transition-opacity">
-              <span className="bg-orange-500 text-white px-4 py-2 rounded-full font-semibold shadow-lg text-sm">
-                Đổi ảnh khác 📸
-              </span>
-            </div>
+            {preview ? (
+              <div className="relative w-full flex justify-center">
+                <img
+                  src={preview}
+                  alt="Preview boss"
+                  className="h-64 object-cover w-full rounded-[2rem] shadow-sm transition-transform duration-500 group-hover:scale-[1.01]"
+                />
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/30 backdrop-blur-sm rounded-[2rem] transition-all duration-300">
+                  <span className="bg-gray-900 text-white px-5 py-2.5 rounded-full font-semibold shadow-xl text-sm transform translate-y-2 group-hover:translate-y-0 transition-all">
+                    Chạm để đổi ảnh khác 📸
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="w-20 h-20 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center text-4xl mx-auto mb-4 group-hover:scale-110 group-hover:rotate-12 transition-transform duration-300">
+                  🐕
+                </div>
+                <p className="font-bold text-lg text-gray-700">Kéo thả ảnh vào đây</p>
+                <p className="text-sm text-gray-400 mt-2 font-medium">PNG, JPG up to 5MB</p>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="text-center">
-            <div className="text-5xl mb-3 animate-bounce">🐕</div>
-            <p className="font-bold text-lg text-orange-600">
-              Kéo thả ảnh boss vào đây
-            </p>
-            <p className="text-sm text-gray-400 mt-1 font-medium">
-              hoặc chạm để chọn file (Max: 5MB)
-            </p>
-          </div>
-        )}
-      </div>
 
-      {/* Hiển thị lỗi file/fetch */}
-      {error && (
-        <div className="mt-5 p-3 bg-red-50 text-red-500 rounded-xl text-center font-medium border border-red-100 flex items-center justify-center gap-2">
-          <span>😿</span> {error}
+          {/* Button Phân Tích */}
+          <button
+            onClick={handleAnalyze}
+            disabled={!file || isLoading}
+            className={`w-full py-4 rounded-[2rem] font-bold text-lg transition-all duration-300 flex justify-center items-center gap-3 ${
+              !file
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : isLoading
+                ? "bg-rose-200 text-rose-600 cursor-wait shadow-inner"
+                : "bg-rose-500 text-white hover:bg-rose-600 hover:-translate-y-1 hover:shadow-xl hover:shadow-rose-200 active:translate-y-0"
+            }`}
+          >
+            {isLoading ? (
+              <>
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Hệ thống đang quan sát...
+              </>
+            ) : (
+              "Bắt đầu phân tích ✨"
+            )}
+          </button>
+
+          {/* Hiển thị lỗi file */}
+          {error && (
+            <div className="p-4 bg-red-50 text-red-600 rounded-3xl text-sm font-semibold flex items-center gap-3">
+              <span className="text-xl">😿</span> {error}
+            </div>
+          )}
+
+          {/* GÓC NHẮC NHỞ (Tips) */}
+          <div className="space-y-4 pt-4 border-t border-gray-100">
+            <h3 className="font-extrabold text-gray-900 text-lg flex items-center gap-2">
+              <span>💡</span> Bí kíp soi chuẩn
+            </h3>
+            <AdviceCard 
+              icon="📸" 
+              title="Góc chụp quyết định" 
+              text="Một số góc chụp khuất, lóa sáng hoặc quá xa khiến AI dễ bị 'hoa mắt'. Sen thử chọn ảnh chụp trực diện khuôn mặt bé để có kết quả chính xác nhất nha!"
+              colorClass="bg-blue-50 text-blue-800"
+            />
+            <AdviceCard 
+              icon="🧠" 
+              title="AI vẫn đang lớn" 
+              text="Mô hình chưa có khả năng nhận diện 100% các giống chó lai tạp phức tạp hoặc quá hiếm. Kết quả mang tính tham khảo, sen hãy hỏi thêm ý kiến bác sĩ thú y nếu cần nhé!"
+              colorClass="bg-amber-50 text-amber-800"
+            />
+          </div>
         </div>
-      )}
 
-      {/* Nút Phân tích */}
-      <button
-        onClick={handleAnalyze}
-        disabled={!file || isLoading}
-        className={`mt-6 w-full py-4 rounded-2xl font-bold text-lg text-white transition-all duration-200 flex justify-center items-center gap-2 ${
-          !file
-            ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-            : isLoading
-              ? "bg-orange-300 cursor-wait shadow-inner"
-              : "bg-gradient-to-r from-orange-400 to-amber-500 hover:from-orange-500 hover:to-amber-600 hover:-translate-y-1 hover:shadow-lg active:translate-y-0 shadow-md"
-        }`}
-      >
-        {isLoading ? (
-          <>
-            <svg
-              className="animate-spin -ml-1 mr-2 h-5 w-5 text-white"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            Đang vắt óc soi... 🦴
-          </>
-        ) : (
-          "Soi Cún Ngay! 🔍"
-        )}
-      </button>
-
-      {/* Khu vực Hiển thị Kết quả từ API */}
-      {result && !isLoading && (
-        <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {!result.success ? (
-            // Thất bại hoặc ảnh không hợp lệ (độ tin cậy quá thấp)
-            <div className="p-5 bg-red-50 border-2 border-red-200 rounded-2xl text-center">
-              <div className="text-3xl mb-2">🙈</div>
-              <h3 className="font-bold text-red-600 text-lg">Úi chà chà...</h3>
-              <p className="text-red-500 mt-1 font-medium">{result.message}</p>
+        {/* ================= CỘT PHẢI: KẾT QUẢ PHÂN TÍCH ================= */}
+        <div className="lg:col-span-7">
+          {!result && !isLoading ? (
+            /* Trạng thái chờ: Hiển thị minh họa hoặc hướng dẫn giống ảnh mẫu */
+            <div className="h-full min-h-[400px] flex flex-col items-center justify-center text-center p-8 bg-white border border-gray-100 rounded-[3rem] shadow-sm">
+              <div className="grid grid-cols-3 gap-4 md:gap-8 mb-8 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+                <div className="flex flex-col items-center gap-3"><div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center text-2xl">📸</div><span className="text-xs font-bold text-gray-400">1. Upload ảnh</span></div>
+                <div className="flex flex-col items-center gap-3"><div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center text-2xl">🧠</div><span className="text-xs font-bold text-gray-400">2. AI phân tích</span></div>
+                <div className="flex flex-col items-center gap-3"><div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center text-2xl">🎉</div><span className="text-xs font-bold text-gray-400">3. Nhận kết quả</span></div>
+              </div>
+              <p className="text-gray-400 font-medium">Kết quả phân tích chi tiết sẽ xuất hiện tại đây</p>
             </div>
-          ) : (
-            // Thành công
-            <div className="bg-white p-5 border-2 border-green-100 shadow-sm rounded-[1.5rem]">
-              <div className="text-center mb-5">
-                <span className="inline-block bg-green-100 text-green-700 px-4 py-1.5 rounded-full text-sm font-bold tracking-wide">
-                  Tadaa! 🎉 {result.message}
+          ) : isLoading ? (
+            /* Trạng thái Loading */
+            <div className="h-full min-h-[400px] flex flex-col items-center justify-center p-8 bg-white rounded-[3rem] shadow-sm animate-pulse">
+              <div className="w-24 h-24 bg-gray-100 rounded-full mb-6"></div>
+              <div className="w-48 h-6 bg-gray-100 rounded-full mb-4"></div>
+              <div className="w-64 h-4 bg-gray-50 rounded-full"></div>
+            </div>
+          ) : result && result.success && result.predictions && result.predictions.length > 0 ? (
+            /* Trạng thái Thành công */
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-2xl font-extrabold text-gray-900">Báo cáo phân tích</h2>
+                <span className="bg-green-100 text-green-700 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
+                  Phân tích thành công
                 </span>
               </div>
 
-              {/* Top 1: Highlight to đùng */}
-              {result.predictions && result.predictions.length > 0 && (
-                <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-5 rounded-2xl border border-orange-100 shadow-sm mb-4">
-                  <div className="flex justify-between items-end mb-2">
-                    <div>
-                      <p className="text-xs font-bold text-orange-400 uppercase tracking-wider">
-                        Chuẩn nhất (Top 1)
-                      </p>
-                      <h2 className="text-2xl font-extrabold text-orange-700 mt-1">
-                        {result.predictions[0].breed}
-                      </h2>
-                    </div>
-                    <span className="text-xl font-black text-orange-500">
-                      {(result.predictions[0].confidence * 100).toFixed(1)}%
-                    </span>
-                  </div>
-                  <CuteProgressBar
-                    percent={(result.predictions[0].confidence * 100).toFixed(
-                      1,
-                    )}
-                    color="bg-orange-500"
-                  />
-                </div>
-              )}
-
-              {/* Top 2 & 3: Flex nhẹ thêm các phương án khác */}
-              {result.predictions && result.predictions.length > 1 && (
-                <div className="mt-4">
-                  <p className="text-sm font-bold text-gray-500 mb-3 ml-1 flex items-center gap-1">
-                    <span>🤔</span> Có thể sen nhầm với:
+              {/* Card Top 1: Mức độ trùng khớp cao nhất */}
+              <div className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-gray-100 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-rose-50 rounded-bl-full -z-0 transition-transform group-hover:scale-110"></div>
+                
+                <div className="relative z-10">
+                  <p className="text-xs font-bold text-rose-400 uppercase tracking-wider mb-2">
+                    Khả năng cao nhất (Top Match)
                   </p>
-                  <div className="space-y-3">
-                    {result.predictions.slice(1).map((item, index) => {
-                      const percent = (item.confidence * 100).toFixed(1);
-                      return (
-                        <div
-                          key={index}
-                          className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex flex-col justify-center"
-                        >
-                          <div className="flex justify-between items-center text-sm mb-1">
-                            <span className="font-semibold text-gray-700">
-                              {item.breed}
-                            </span>
-                            <span className="font-bold text-gray-500">
-                              {percent}%
-                            </span>
-                          </div>
-                          <CuteProgressBar
-                            percent={percent}
-                            color={
-                              index === 0 ? "bg-amber-400" : "bg-yellow-400"
-                            }
-                          />
-                        </div>
-                      );
-                    })}
+                  <div className="flex justify-between items-end mb-4">
+                    <h3 className="text-3xl font-extrabold text-gray-900">
+                      {result.predictions[0].breed}
+                    </h3>
+                    <div className="text-right">
+                      <span className="text-3xl font-black text-rose-500">
+                        {(result.predictions[0].confidence * 100).toFixed(1)}%
+                      </span>
+                    </div>
                   </div>
+                  <CuteProgressBar percent={(result.predictions[0].confidence * 100).toFixed(1)} color="bg-rose-500" />
+                  
+                  {/* Cụm Action Buttons (Mô phỏng UI tham khảo) */}
+                  <div className="flex gap-3 mt-8">
+                    <button className="flex-1 bg-gray-900 text-white font-bold py-3 px-4 rounded-2xl hover:bg-gray-800 transition-colors text-sm">
+                      Lưu hồ sơ
+                    </button>
+                    <button className="flex-1 bg-rose-50 text-rose-600 font-bold py-3 px-4 rounded-2xl hover:bg-rose-100 transition-colors text-sm">
+                      Chia sẻ
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Các kết quả thay thế (Top 2 & 3) */}
+              {result.predictions.length > 1 && (
+                <div className="space-y-4">
+                  <h4 className="font-bold text-gray-500 px-2 text-sm">Các khả năng lai tạo / nhầm lẫn khác:</h4>
+                  {result.predictions.slice(1).map((item, index) => {
+                    const percent = (item.confidence * 100).toFixed(1);
+                    return (
+                      <div key={index} className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-50 hover:border-gray-200 transition-colors">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-bold text-gray-800 text-lg">{item.breed}</span>
+                          <span className="font-bold text-gray-400">{percent}%</span>
+                        </div>
+                        <CuteProgressBar 
+                          percent={percent} 
+                          color={index === 0 ? "bg-amber-400" : "bg-blue-300"} 
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
+          ) : (
+            /* Kết quả thất bại từ AI */
+            <div className="h-full min-h-[400px] flex flex-col items-center justify-center p-8 bg-red-50 rounded-[3rem] border-2 border-red-100 text-center">
+              <div className="text-5xl mb-4">🙈</div>
+              <h3 className="font-bold text-red-600 text-xl mb-2">Hệ thống hơi bối rối...</h3>
+              <p className="text-red-500 font-medium">{result?.message || "Không thể nhận diện được hình ảnh này."}</p>
+            </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
