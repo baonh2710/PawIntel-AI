@@ -106,7 +106,8 @@ python -m venv venv
 
 pip install -r requirements.txt
 
-uvicorn main:app --reload --port 8000
+# Đã cập nhật trỏ vào thư mục app
+uvicorn app.main:app --reload --port 8000
 
 ```
 
@@ -203,7 +204,7 @@ echo > .env
 
 ✅ Phải dùng:
 
-```powershell 
+```powershell
 "TEXT" | Out-File .env
 
 ```
@@ -242,6 +243,13 @@ pip install --upgrade pip
 - đổi port trong `.env`
 
 ---
+
+### 4. Quy chuẩn Code Backend (ES Modules)
+Dự án sử dụng chuẩn ES Modules (`"type": "module"`). Khi code Backend, bắt buộc tuân thủ:
+❌ **KHÔNG** dùng: `const express = require('express');`
+✅ **PHẢI** dùng: `import express from 'express';`
+⚠️ **Đặc biệt lưu ý:** Khi import file nội bộ tự viết, **BẮT BUỘC phải ghi rõ đuôi `.js`**.
+*(Ví dụ: `import { analyzeImage } from '../controllers/analyzeController.js';`)*
 
 ## 🧠 Ghi chú kỹ thuật
 
@@ -302,13 +310,13 @@ PawIntel-AI/
 │ │ ├── config/ # Cấu hình database, môi trường, constants
 │ │ ├── controllers/ # Xử lý logic request/response cho từng route
 │ │ ├── middlewares/ # Custom middleware (auth, check role, multer upload file)
-│ │ ├── models/ # Định nghĩa Schema Database (Mongoose, Prisma...)
+│ │ ├── models/ # Định nghĩa Schema Database (Mongoose)
 │ │ ├── routes/ # Định nghĩa các API endpoints
-│ │ ├── services/ # Chứa business logic, tương tác DB hoặc gọi sang Python-Backend
-│ │ └── utils/ # Các hàm helper dùng chung (format date, handle error)
+│ │ ├── services/ # Chứa business logic, tương tác DB hoặc gọi sang Python
+│ │ ├── utils/ # Các hàm helper dùng chung
+│ │ └── server.js # Entry point khởi tạo server Express (Đã dời vào đây)
 │ ├── .env.example # Tệp mẫu biến môi trường cho Node.js
-│ ├── package.json
-│ └── server.js # Entry point khởi tạo server Express
+│ └── package.json
 │
 ├── python-backend/ # 🐍 Python (AI/ML Microservice)
 │ ├── app/ # Thư mục source code chính

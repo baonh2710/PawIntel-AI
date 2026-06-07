@@ -1,11 +1,12 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-// import App from './App.jsx'
-import ImageAnalyzer from './components/ImageAnalyzer'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import "./index.css";
+import { AnalyzerPage } from "./pages/AnalyzerPage";
 
-createRoot(document.getElementById('root')).render(
+// import App from './App.jsx'
+
+createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <ImageAnalyzer></ImageAnalyzer>
+    <AnalyzerPage></AnalyzerPage>
   </StrictMode>,
-)
+);
