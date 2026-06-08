@@ -1,33 +1,28 @@
 import mongoose from 'mongoose';
 
-const funFactSchema = new mongoose.Schema({
-    content: { 
-        type: String, 
-        required: true,
-        trim: true
+const funFactSchema = new mongoose.Schema(
+  {
+    category: {
+      type: String,
+      required: true,
+      trim: true,
+      // Đã cập nhật enum khớp với dữ liệu từ file seed.js
+      enum: ['intelligence', 'history', 'health', 'behavior', 'general'],
     },
-    category: { 
-        type: String, 
-        enum: ['General', 'Dog', 'Cat', 'BreedSpecific'],
-        required: true,
-        index: true 
-    },
-    breedId: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'Breed',
-        default: null 
-    },
-    isActive: {
-        type: Boolean,
-        default: true
+    content: {
+      type: String,
+      required: true,
+      trim: true,
     },
     schemaVersion: {
-        type: Number,
-        default: 1
-    }
-}, { 
-    timestamps: true 
-});
+      type: Number,
+      default: 1,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
 
 // Sử dụng Named Export
 export const FunFact = mongoose.model('FunFact', funFactSchema);

@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import connectDB from "./config/db.js";
 import { v1Router } from "./routes/v1/index.js"; // Import đích danh
 
 const app = express();
@@ -12,8 +13,10 @@ app.use(express.json());
 // Gắn toàn bộ version 1 vào /api/v1
 app.use("/api/v1", v1Router);
 
-app.listen(PORT, () => {
-  console.log(
-    `🚀 Gateway Server (ES Modules) đang chạy tại: http://localhost:${PORT}`,
-  );
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(
+      `🚀 Gateway Server (ES Modules) đang chạy tại: http://localhost:${PORT}`,
+    );
+  });
 });

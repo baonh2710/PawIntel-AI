@@ -1,37 +1,32 @@
 import { predictDogBreed } from "../../services/ai/analyze.service.js";
+
 export const analyzeImage = async (req, res) => {
   try {
+    // 1. Kiểm tra xem có file tải lên không
     if (!req.file) {
-      return res
-        .status(400)
-        .json({ error: "Không tìm thấy file ảnh trong request." });
+      return res.status(400).json({ 
+        success: false, 
+        message: "No image file provided. Please upload an image." 
+      });
     }
 
-    console.log(
-      `[Gateway] Nhận được ảnh: ${req.file.originalname} (${req.file.size} bytes)`,
-    );
-    console.log(`[Gateway] Đang chuyển tiếp sang AI Microservice...`);
-
-    // Gọi Service thực thi nghiệp vụ lõi
+    // 2. Chuyển file xuống tầng Service để xử lý (Gọi Python + Query DB)
     const result = await predictDogBreed(
-      req.file.buffer,
-      req.file.originalname,
-      req.file.mimetype,
+      req.file.buffer, 
+      req.file.originalname, 
+      req.file.mimetype
     );
 
-    console.log(`[Gateway] Nhận kết quả thành công, trả về Frontend.`);
+    // 3. Trả về cho React
     return res.status(200).json(result);
+    
   } catch (error) {
-    console.error("[Gateway Error]:", error.message);
-    const statusCode = error.response ? error.response.status : 500;
-    const errorMsg = error.response
-      ? error.response.data.detail
-      : "Lỗi kết nối đến trạm AI";
-
-    return res.status(statusCode).json({
-      success: false,
-      predictions: [],
-      message: errorMsg,
+    console.error("🔴 [Analyze Controller Error]:", error.message);
+    
+    // Đảm bảo luôn trả về JSON để Frontend không bị lỗi "Unexpected token < or I"
+    return res.status(500).json({ 
+      success: false, 
+      message: `System Error: ${error.message}. (Did you forget to start the Python AI Server?)` 
     });
   }
 };

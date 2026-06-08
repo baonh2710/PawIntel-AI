@@ -6,6 +6,6 @@ const aiRouter = express.Router();
 
 // Lưu ý: Endpoint bây giờ chỉ cần '/' vì '/ai' đã được định nghĩa ở index.js
 // URL thực tế sẽ là: POST /api/v1/ai/analyze
-aiRouter.post('/analyze', upload.single('image'), analyzeImage);
+aiRouter.post('/analyze', upload.single('file'), analyzeImage);
 
 export {aiRouter}

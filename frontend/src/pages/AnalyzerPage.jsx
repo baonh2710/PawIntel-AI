@@ -1,293 +1,354 @@
-// src/pages/AnalyzerPage.jsx
-import {useImageAnalyzer}  from "../hooks/useImageAnalyzer";
-import {CuteProgressBar} from "../components/common/CuteProgressBar";
-import { AdviceCard } from "@/components/common/AdviceCard";
 
-export const AnalyzerPage = () => {
-  // --- KẾT NỐI VỚI NÃO BỘ (HOOK) ---
+import { useImageAnalyzer } from "../hooks/useImageAnalyzer";
+import { CuteProgressBar } from "../components/common/CuteProgressBar";
+import {
+  UploadCloud,
+  Sparkles,
+  Info,
+  Heart,
+  Share2,
+  Activity,
+  PawPrint,
+  RefreshCcw,
+} from "lucide-react";
+
+export function AnalyzerPage() {
   const {
-    file,
     preview,
     isLoading,
     result,
     error,
     isDragOver,
-    handleFileChange,
     handleDragOver,
     handleDragLeave,
     handleDrop,
+    handleFileChange,
     handleAnalyze,
+    handleReset,
   } = useImageAnalyzer();
 
-  // --- MẶT TIỀN (UI) KHÔNG CHỨA LOGIC PHỨC TẠP ---
+  const breedData = result?.encyclopedia;
+  const funFact = result?.fun_fact;
+  const predictionInfo = result?.top_prediction_info;
+
   return (
-    <div className="min-h-screen bg-[#faf9f6] text-gray-800 font-sans p-4 md:p-8 lg:p-12">
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
-        {/* ================= CỘT TRÁI: UPLOAD & TIPS ================= */}
-        <div className="lg:col-span-5 space-y-8">
-          {/* Header */}
-          <div>
-            <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight flex items-center gap-3">
-              <span>🐾</span> Trạm Soi Cún
-            </h1>
-            <p className="text-gray-500 font-medium mt-3 text-sm md:text-base leading-relaxed">
-              Tải ảnh lên hoặc kéo thả vào khung bên dưới. Hệ thống sẽ "nhìn
-              ngắm" diện mạo của bé và dự đoán giống chó giúp bạn!
-            </p>
-          </div>
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans p-6 md:p-12">
+      <div className="max-w-5xl mx-auto space-y-8">
+        {/* HEADER */}
+        <header className="text-center space-y-2">
+          <h1 className="text-4xl font-bold text-slate-800 flex items-center justify-center gap-3">
+            <PawPrint className="text-orange-500 w-10 h-10" />
+            PawIntel Identifier
+          </h1>
+          <p className="text-slate-500 text-lg">
+            Discover your dog's breed and learn their unique lifestyle needs.
+          </p>
+        </header>
 
-          {/* Khung Upload */}
-          <div
-            className={`relative flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-[2.5rem] transition-all duration-300 ease-out ${
-              isDragOver
-                ? "border-rose-400 bg-rose-50 scale-[1.02]"
-                : "border-gray-200 bg-white hover:border-rose-300 hover:bg-rose-50/30 hover:shadow-xl hover:shadow-rose-100/50"
-            } cursor-pointer group`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-            />
-            {preview ? (
-              <div className="relative w-full flex justify-center">
-                <img
-                  src={preview}
-                  alt="Preview boss"
-                  className="h-64 object-cover w-full rounded-[2rem] shadow-sm transition-transform duration-500 group-hover:scale-[1.01]"
-                />
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/30 backdrop-blur-sm rounded-[2rem] transition-all duration-300">
-                  <span className="bg-gray-900 text-white px-5 py-2.5 rounded-full font-semibold shadow-xl text-sm transform translate-y-2 group-hover:translate-y-0 transition-all">
-                    Chạm để đổi ảnh khác 📸
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <div className="w-20 h-20 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center text-4xl mx-auto mb-4 group-hover:scale-110 group-hover:rotate-12 transition-transform duration-300">
-                  🐕
-                </div>
-                <p className="font-bold text-lg text-gray-700">
-                  Kéo thả ảnh vào đây
-                </p>
-                <p className="text-sm text-gray-400 mt-2 font-medium">
-                  PNG, JPG up to 5MB
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Button Phân Tích */}
-          <button
-            onClick={handleAnalyze}
-            disabled={!file || isLoading}
-            className={`w-full py-4 rounded-[2rem] font-bold text-lg transition-all duration-300 flex justify-center items-center gap-3 ${
-              !file
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : isLoading
-                  ? "bg-rose-200 text-rose-600 cursor-wait shadow-inner"
-                  : "bg-rose-500 text-white hover:bg-rose-600 hover:-translate-y-1 hover:shadow-xl hover:shadow-rose-200 active:translate-y-0"
-            }`}
-          >
-            {isLoading ? (
-              <>
-                <svg
-                  className="animate-spin h-5 w-5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Hệ thống đang quan sát...
-              </>
-            ) : (
-              "Bắt đầu phân tích ✨"
-            )}
-          </button>
-
-          {/* Hiển thị lỗi file */}
-          {error && (
-            <div className="p-4 bg-red-50 text-red-600 rounded-3xl text-sm font-semibold flex items-center gap-3">
-              <span className="text-xl">😿</span> {error}
-            </div>
-          )}
-
-          {/* GÓC NHẮC NHỞ (Tips) */}
-          <div className="space-y-4 pt-4 border-t border-gray-100">
-            <h3 className="font-extrabold text-gray-900 text-lg flex items-center gap-2">
-              <span>💡</span> Bí kíp soi chuẩn
-            </h3>
-            <AdviceCard
-              icon="📸"
-              title="Góc chụp quyết định"
-              text="Một số góc chụp khuất, lóa sáng hoặc quá xa khiến AI dễ bị 'hoa mắt'. Sen thử chọn ảnh chụp trực diện khuôn mặt bé để có kết quả chính xác nhất nha!"
-              colorClass="bg-blue-50 text-blue-800"
-            />
-            <AdviceCard
-              icon="🧠"
-              title="AI vẫn đang lớn"
-              text="Mô hình chưa có khả năng nhận diện 100% các giống chó lai tạp phức tạp hoặc quá hiếm. Kết quả mang tính tham khảo, sen hãy hỏi thêm ý kiến bác sĩ thú y nếu cần nhé!"
-              colorClass="bg-amber-50 text-amber-800"
-            />
-          </div>
-        </div>
-
-        {/* ================= CỘT PHẢI: KẾT QUẢ PHÂN TÍCH ================= */}
-        <div className="lg:col-span-7">
-          {!result && !isLoading ? (
-            /* Trạng thái chờ: Hiển thị minh họa hoặc hướng dẫn giống ảnh mẫu */
-            <div className="h-full min-h-[400px] flex flex-col items-center justify-center text-center p-8 bg-white border border-gray-100 rounded-[3rem] shadow-sm">
-              <div className="grid grid-cols-3 gap-4 md:gap-8 mb-8 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center text-2xl">
-                    📸
-                  </div>
-                  <span className="text-xs font-bold text-gray-400">
-                    1. Upload ảnh
-                  </span>
-                </div>
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center text-2xl">
-                    🧠
-                  </div>
-                  <span className="text-xs font-bold text-gray-400">
-                    2. AI phân tích
-                  </span>
-                </div>
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center text-2xl">
-                    🎉
-                  </div>
-                  <span className="text-xs font-bold text-gray-400">
-                    3. Nhận kết quả
-                  </span>
-                </div>
-              </div>
-              <p className="text-gray-400 font-medium">
-                Kết quả phân tích chi tiết sẽ xuất hiện tại đây
-              </p>
-            </div>
-          ) : isLoading ? (
-            /* Trạng thái Loading */
-            <div className="h-full min-h-[400px] flex flex-col items-center justify-center p-8 bg-white rounded-[3rem] shadow-sm animate-pulse">
-              <div className="w-24 h-24 bg-gray-100 rounded-full mb-6"></div>
-              <div className="w-48 h-6 bg-gray-100 rounded-full mb-4"></div>
-              <div className="w-64 h-4 bg-gray-50 rounded-full"></div>
-            </div>
-          ) : result &&
-            result.success &&
-            result.predictions &&
-            result.predictions.length > 0 ? (
-            /* Trạng thái Thành công */
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-2xl font-extrabold text-gray-900">
-                  Báo cáo phân tích
-                </h2>
-                <span className="bg-green-100 text-green-700 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
-                  Phân tích thành công
-                </span>
-              </div>
-
-              {/* Card Top 1: Mức độ trùng khớp cao nhất */}
-              <div className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-gray-100 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-rose-50 rounded-bl-full -z-0 transition-transform group-hover:scale-110"></div>
-
-                <div className="relative z-10">
-                  <p className="text-xs font-bold text-rose-400 uppercase tracking-wider mb-2">
-                    Khả năng cao nhất (Top Match)
+        {/* MAIN CONTENT AREA - Căn giữa nếu chưa có result */}
+        <div
+          className={`transition-all duration-700 ease-in-out ${result ? "grid grid-cols-1 md:grid-cols-12 gap-8" : "max-w-2xl mx-auto"}`}
+        >
+          {/* UPLOAD & PREVIEW SECTION */}
+          <div className={`${result ? "md:col-span-5" : ""} space-y-6`}>
+            <div
+              className={`relative border-2 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center text-center transition-all bg-white min-h-[350px]
+                ${isDragOver ? "border-orange-400 bg-orange-50" : "border-slate-200 hover:border-orange-300 hover:bg-orange-50/50"}
+                ${preview ? "border-none p-2" : ""}
+              `}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              {!preview ? (
+                <>
+                  <UploadCloud className="w-16 h-16 text-slate-300 mb-4" />
+                  <p className="text-lg font-medium text-slate-600 mb-1">
+                    Drag & Drop your photo here
                   </p>
-                  <div className="flex justify-between items-end mb-4">
-                    <h3 className="text-3xl font-extrabold text-gray-900">
-                      {result.predictions[0].breed}
-                    </h3>
-                    <div className="text-right">
-                      <span className="text-3xl font-black text-rose-500">
-                        {(result.predictions[0].confidence * 100).toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-                  <CuteProgressBar
-                    percent={(result.predictions[0].confidence * 100).toFixed(
-                      1,
-                    )}
-                    color="bg-rose-500"
+                  <p className="text-sm text-slate-400 mb-6">
+                    Supports JPG, PNG, WEBP (Max 5MB)
+                  </p>
+                  <label className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-full cursor-pointer transition-colors font-medium shadow-sm">
+                    Browse Files
+                    <input
+                      type="file"
+                      className="hidden"
+                      onChange={handleFileChange}
+                      accept="image/jpeg, image/png, image/webp"
+                    />
+                  </label>
+                </>
+              ) : (
+                <div className="w-full h-full relative group">
+                  <img
+                    src={preview}
+                    alt="Preview"
+                    className="w-full h-80 object-cover rounded-2xl shadow-sm"
                   />
-
-                  {/* Cụm Action Buttons */}
-                  <div className="flex gap-3 mt-8">
-                    <button className="flex-1 bg-gray-900 text-white font-bold py-3 px-4 rounded-2xl hover:bg-gray-800 transition-colors text-sm">
-                      Lưu hồ sơ
+                  {!isLoading && !result && (
+                    <button
+                      onClick={handleReset}
+                      className="absolute top-3 right-3 bg-white/80 p-2 rounded-full text-slate-600 hover:text-red-500 hover:bg-white transition-all shadow-sm"
+                    >
+                      <RefreshCcw className="w-5 h-5" />
                     </button>
-                    <button className="flex-1 bg-rose-50 text-rose-600 font-bold py-3 px-4 rounded-2xl hover:bg-rose-100 transition-colors text-sm">
-                      Chia sẻ
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Các kết quả thay thế (Top 2 & 3) */}
-              {result.predictions.length > 1 && (
-                <div className="space-y-4">
-                  <h4 className="font-bold text-gray-500 px-2 text-sm">
-                    Các khả năng lai tạo / nhầm lẫn khác:
-                  </h4>
-                  {result.predictions.slice(1).map((item, index) => {
-                    const percent = (item.confidence * 100).toFixed(1);
-                    return (
-                      <div
-                        key={index}
-                        className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-50 hover:border-gray-200 transition-colors"
-                      >
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-bold text-gray-800 text-lg">
-                            {item.breed}
-                          </span>
-                          <span className="font-bold text-gray-400">
-                            {percent}%
-                          </span>
-                        </div>
-                        <CuteProgressBar
-                          percent={percent}
-                          color={index === 0 ? "bg-amber-400" : "bg-blue-300"}
-                        />
-                      </div>
-                    );
-                  })}
+                  )}
                 </div>
               )}
             </div>
-          ) : (
-            /* Kết quả thất bại từ AI */
-            <div className="h-full min-h-[400px] flex flex-col items-center justify-center p-8 bg-red-50 rounded-[3rem] border-2 border-red-100 text-center">
-              <div className="text-5xl mb-4">🙈</div>
-              <h3 className="font-bold text-red-600 text-xl mb-2">
-                Hệ thống hơi bối rối...
-              </h3>
-              <p className="text-red-500 font-medium">
-                {result?.message || "Không thể nhận diện được hình ảnh này."}
-              </p>
+
+            {/* ERROR MESSAGE */}
+            {error && (
+              <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm flex items-start gap-2">
+                <Info className="w-5 h-5 shrink-0" />
+                <p>{error}</p>
+              </div>
+            )}
+
+            {/* ANALYZE BUTTON */}
+            {preview && !result && (
+              <button
+                onClick={handleAnalyze}
+                disabled={isLoading}
+                className="w-full bg-slate-800 hover:bg-slate-900 disabled:bg-slate-400 text-white font-semibold py-4 rounded-2xl transition-all shadow-md flex justify-center items-center gap-2"
+              >
+                {isLoading ? (
+                  <span className="animate-pulse flex items-center gap-2">
+                    <Sparkles className="w-5 h-5" /> Analyzing Image...
+                  </span>
+                ) : (
+                  "Identify Breed"
+                )}
+              </button>
+            )}
+
+            {/* RANDOM FUN FACT BANNER */}
+            {funFact && (
+              <div className="bg-amber-100/50 border border-amber-200 rounded-2xl p-5 relative overflow-hidden">
+                <Sparkles className="absolute -top-2 -right-2 text-amber-200 w-16 h-16 opacity-50" />
+                <h4 className="text-amber-800 font-semibold mb-2 flex items-center gap-2 text-sm uppercase tracking-wider">
+                  Did you know?
+                </h4>
+                <p className="text-amber-900/80 text-sm italic leading-relaxed">
+                  "{funFact.content}"
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* RESULTS SECTION */}
+          {result && (
+            <div className="md:col-span-7 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              {/* TOP CARD: Basic Info & Actions */}
+              <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase mb-3">
+                      <Activity className="w-3.5 h-3.5" />
+                      {predictionInfo?.confidence
+                        ? predictionInfo.confidence.toFixed(1)
+                        : 0}
+                      % Match
+                    </div>
+                    <h2 className="text-3xl font-bold text-slate-800">
+                      {breedData?.name ||
+                        (predictionInfo?.breed_id
+                          ? predictionInfo.breed_id.replace(/_/g, " ")
+                          : "Unknown Breed")}
+                    </h2>
+                  </div>
+
+                  {/* ACTIONS: Bookmark & Share */}
+                  <div className="flex gap-2">
+                    <button
+                      className="p-3 bg-slate-50 text-slate-500 rounded-full hover:text-red-500 hover:bg-red-50 transition-colors tooltip"
+                      title="Save to Profile"
+                    >
+                      <Heart className="w-5 h-5" />
+                    </button>
+                    <button
+                      className="p-3 bg-slate-50 text-slate-500 rounded-full hover:text-blue-500 hover:bg-blue-50 transition-colors tooltip"
+                      title="Share Result"
+                    >
+                      <Share2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* ENCYCLOPEDIA DATA */}
+                {breedData ? (
+                  <div className="space-y-8">
+                    {/* STATS */}
+                    <div className="grid grid-cols-3 gap-4 text-center divide-x divide-slate-100 bg-slate-50 rounded-2xl p-4">
+                      <div>
+                        <p className="text-xs text-slate-400 uppercase font-semibold mb-1">
+                          Weight
+                        </p>
+                        <p className="text-slate-700 font-medium">
+                          {breedData.physicalStats?.weight}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400 uppercase font-semibold mb-1">
+                          Height
+                        </p>
+                        <p className="text-slate-700 font-medium">
+                          {breedData.physicalStats?.height}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400 uppercase font-semibold mb-1">
+                          Lifespan
+                        </p>
+                        <p className="text-slate-700 font-medium">
+                          {breedData.physicalStats?.lifespan}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* TRAITS TAGS */}
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-3">
+                        Core Traits
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {breedData.coreTraits?.map((trait, idx) => (
+                          <span
+                            key={idx}
+                            className="px-4 py-1.5 bg-orange-100 text-orange-800 rounded-full text-sm font-medium"
+                          >
+                            {trait}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* METRICS (PROGRESS BARS) */}
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-4">
+                        Lifestyle Compatibility
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                        <div>
+                          <div className="flex justify-between text-sm mb-1 text-slate-600">
+                            <span>Trainability</span>
+                            <span className="font-bold">
+                              {breedData.comparisonMetrics?.trainability || 0}/5
+                            </span>
+                          </div>
+                          <CuteProgressBar
+                            score={
+                              breedData.comparisonMetrics?.trainability || 0
+                            }
+                            color="bg-blue-400"
+                          />
+                        </div>
+                        <div>
+                          <div className="flex justify-between text-sm mb-1 text-slate-600">
+                            <span>Energy Level</span>
+                            <span className="font-bold">
+                              {breedData.comparisonMetrics?.energyLevel || 0}/5
+                            </span>
+                          </div>
+                          <CuteProgressBar
+                            score={
+                              breedData.comparisonMetrics?.energyLevel || 0
+                            }
+                            color="bg-orange-400"
+                          />
+                        </div>
+                        <div>
+                          <div className="flex justify-between text-sm mb-1 text-slate-600">
+                            <span>Apartment Friendly</span>
+                            <span className="font-bold">
+                              {breedData.comparisonMetrics?.apartmentFriendly ||
+                                0}
+                              /5
+                            </span>
+                          </div>
+                          <CuteProgressBar
+                            score={
+                              breedData.comparisonMetrics?.apartmentFriendly ||
+                              0
+                            }
+                            color="bg-emerald-400"
+                          />
+                        </div>
+                        <div>
+                          <div className="flex justify-between text-sm mb-1 text-slate-600">
+                            <span>Kid Friendly</span>
+                            <span className="font-bold">
+                              {breedData.comparisonMetrics?.kidFriendly || 0}/5
+                            </span>
+                          </div>
+                          <CuteProgressBar
+                            score={
+                              breedData.comparisonMetrics?.kidFriendly || 0
+                            }
+                            color="bg-rose-400"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SAMPLE IMAGES */}
+                    {breedData.sampleImages?.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-3">
+                          Breed Gallery
+                        </h3>
+                        <div className="flex gap-3 overflow-x-auto pb-2">
+                          {breedData.sampleImages.map((imgUrl, idx) => (
+                            <img
+                              key={idx}
+                              src={imgUrl}
+                              alt={`Sample ${idx}`}
+                              className="w-32 h-32 object-cover rounded-2xl shadow-sm border border-slate-100 shrink-0"
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* CARE ADVICE */}
+                    <div className="bg-blue-50/50 rounded-2xl p-5 border border-blue-100">
+                      <h3 className="text-sm font-bold text-blue-900 uppercase tracking-wide mb-3">
+                        Care Advice
+                      </h3>
+                      <ul className="space-y-2">
+                        {breedData.careAdvice?.map((advice, idx) => (
+                          <li
+                            key={idx}
+                            className="text-sm text-blue-800/80 flex items-start gap-2"
+                          >
+                            <span className="text-blue-400 mt-0.5">•</span>{" "}
+                            {advice}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-slate-500 italic p-4 bg-slate-50 rounded-xl border border-slate-100 text-center">
+                    Oops! We don't have detailed encyclopedia data for this
+                    specific breed yet.
+                  </div>
+                )}
+              </div>
+
+              <div className="text-center">
+                <button
+                  onClick={handleReset}
+                  className="text-slate-400 hover:text-slate-600 underline font-medium text-sm transition-colors"
+                >
+                  Analyze another photo
+                </button>
+              </div>
             </div>
           )}
         </div>
       </div>
     </div>
   );
-};
-
+}
