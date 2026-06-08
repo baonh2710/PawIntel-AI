@@ -106,8 +106,7 @@ python -m venv venv
 
 pip install -r requirements.txt
 
-# Đã cập nhật trỏ vào thư mục app
-uvicorn app.main:app --reload --port 8000
+python -m app.main
 
 ```
 
@@ -126,14 +125,14 @@ cd backend
 
 npm install
 
-"PORT=3000" | Out-File -Encoding utf8 .env
+"PORT=5000" | Out-File -Encoding utf8 .env
 "PYTHON_BACKEND_URL=http://localhost:8000" | Out-File -Encoding utf8 -Append .env
 
 npm start
 
 ```
 
-✅ Server chạy tại: http://localhost:3000
+✅ Server chạy tại: http://localhost:5000
 
 👉 **GIỮ terminal này mở**
 
@@ -148,7 +147,7 @@ cd frontend
 
 npm install
 
-"VITE_API_URL=http://localhost:3000" | Out-File -Encoding utf8 .env
+"VITE_API_URL=http://localhost:5000" | Out-File -Encoding utf8 .env
 
 npm run dev
 
@@ -167,7 +166,7 @@ npm run dev
 | Service    | Port |
 | ---------- | ---- |
 | Frontend   | 5173 |
-| Backend    | 3000 |
+| Backend    | 5000 |
 | AI Service | 8000 |
 
 ---
@@ -177,7 +176,7 @@ npm run dev
 ### backend/.env
 
 ```
-PORT=3000
+PORT=5000
 PYTHON_BACKEND_URL=http://localhost:8000
 
 ```
@@ -185,7 +184,7 @@ PYTHON_BACKEND_URL=http://localhost:8000
 ### frontend/.env
 
 ```
-VITE_API_URL=http://localhost:3000
+VITE_API_URL=http://localhost:5000
 
 ```
 

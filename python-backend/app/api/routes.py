@@ -5,18 +5,19 @@ from app.services.model_service import predict_image
 
 router = APIRouter()
 
+
 @router.post("/predict", response_model=APIResponse)
 async def predict_dog_breed(file: UploadFile = File(...), threshold: float = 0.35):
-    if not file.content_type.startswith("image/"):
+    if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Chỉ chấp nhận định dạng ảnh.")
 
     try:
         print(f"[AI Service] Đang phân tích ảnh: {file.filename}")
         image_bytes = await file.read()
-        
+
         # Nhờ service chạy logic model
         result = predict_image(image_bytes, threshold)
-        
+
         return result
 
     except ValueError as ve:

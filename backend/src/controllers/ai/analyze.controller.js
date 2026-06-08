@@ -1,5 +1,4 @@
-import { predictDogBreed } from "../services/aiService.js";
-
+import { predictDogBreed } from "../../services/ai/analyze.service.js";
 export const analyzeImage = async (req, res) => {
   try {
     if (!req.file) {
