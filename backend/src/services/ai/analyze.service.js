@@ -69,16 +69,69 @@ export const predictDogBreed = async (fileBuffer, originalName, mimeType) => {
     randomFact = await FunFact.findOne().skip(randomIndex).lean();
   }
 
-  // 5. Gom chung dữ liệu của AI, Database và Fun Fact để trả về Frontend
+  // 5. [REFACTOR] Khớp nối & Chuẩn hóa cấu trúc Dữ liệu để nuông chiều UI
+  const otherMatchesFormatted = (aiResult.predictions || [])
+    .slice(1, 4) // Lấy tối đa 3 giống chó xếp sau để đưa vào mục "Other Possible Matches"
+    .map((p) => ({
+      breed: p.breed
+        .split("_")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" "), // Corgi_pembroke -> Corgi Pembroke
+      confidence: Math.round(p.confidence * 100), // Đổi từ hệ thập phân (0.85) sang phần trăm (85%)
+    }));
+
+  const uiFormattedData = {
+    topMatch: {
+      breed: breedDetails ? breedDetails.name : breedIdFromAI,
+      confidence: Math.round(topMatch.confidence * 100), // Đổi sang % để ném vào Badge tròn
+    },
+    otherMatches: otherMatchesFormatted,
+    encyclopedia: breedDetails
+      ? {
+          name: breedDetails.name,
+          scientificName: `Canis lupus familiaris • Origin: ${breedDetails.origin || "Unknown"}`,
+          primaryImage:
+            breedDetails.sampleImages?.[0] ||
+            "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800",
+          coreTraits: breedDetails.coreTraits || [],
+          physicalStats: breedDetails.physicalStats || {
+            weight: "N/A",
+            height: "N/A",
+            lifespan: "N/A",
+          },
+          // Nhân 2 điểm số từ thang 1-5 trong DB lên thang 1-10 để thanh Progress Bar hiển thị chuẩn tỉ lệ
+          comparisonMetrics: {
+            energyLevel: (breedDetails.comparisonMetrics?.energyLevel || 3) * 2,
+            sociability: (breedDetails.comparisonMetrics?.kidFriendly || 3) * 2, // Map tạm độ thân thiện
+            trainability:
+              (breedDetails.comparisonMetrics?.trainability || 3) * 2,
+            guarding:
+              (breedDetails.comparisonMetrics?.apartmentFriendly || 3) * 2,
+          },
+          story:
+            breedDetails.description ||
+            breedDetails.breedSpecificFacts?.[0] ||
+            "No overview available.",
+          tags: [
+            breedDetails.lifestyleFilters?.size,
+            `${breedDetails.lifestyleFilters?.sheddingLevel} Shedding`,
+            breedDetails.lifestyleFilters?.spaceRequirement,
+          ].filter(Boolean),
+          careAdvice: (breedDetails.careAdvice || []).map((advice, index) => ({
+            title: index === 0 ? "Exercise Needs" : "Grooming & Upkeep",
+            desc: advice,
+          })),
+        }
+      : null,
+    funFact: randomFact
+      ? randomFact.content
+      : breedDetails?.breedSpecificFacts?.[0] ||
+        "Dogs are human's best friends.",
+  };
+
   return {
     success: true,
-    ai_analysis: aiResult,
-    top_prediction_info: {
-      breed_id: breedIdFromAI,
-      confidence: topMatch.confidence,
-    },
-    encyclopedia: breedDetails,
-    fun_fact: randomFact,
+    data: uiFormattedData, // Đóng gói toàn bộ cục data mượt mà này gửi về cho Controller
     message: breedDetails
       ? "Analysis completed and breed insights retrieved successfully."
       : `Analysis completed for '${breedIdFromAI}', but no encyclopedia data was found.`,

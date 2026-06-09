@@ -6,20 +6,36 @@ const dogBreedSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      trim: true, // VD: "golden_retriever", "welsh_corgi_pembroke"
+      trim: true, // VD: "golden_retriever" (Must match Python AI output exactly)
     },
     name: {
       type: String,
       required: true,
-      trim: true, // Tên hiển thị trên UI: "Golden Retriever"
+      trim: true, // VD: "Golden Retriever"
     },
-    // 1. Phục vụ hiển thị thông tin cơ bản & Hồ sơ tạp chí
+    // BỔ SUNG 1: Đoạn mô tả ngắn giới thiệu giống loài
+    description: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    // BỔ SUNG 2: Xuất xứ của giống chó
+    origin: {
+      type: String,
+      trim: true,
+      default: "Không rõ",
+    },
+    // BỔ SUNG 3: Ảnh đại diện siêu nhẹ cho trang danh sách (List Page)
+    thumbnail: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     physicalStats: {
       weight: { type: String, default: "N/A" },
       height: { type: String, default: "N/A" },
       lifespan: { type: String, default: "N/A" },
     },
-    // 2. Các trường định tính phục vụ Bộ lọc thông minh (Lifestyle Filters)
     lifestyleFilters: {
       size: {
         type: String,
@@ -37,39 +53,16 @@ const dogBreedSchema = new mongoose.Schema(
         enum: ["Apartment", "Small Yard", "Large Yard"],
       },
     },
-    // 3. Điểm số định lượng (1-5) phục vụ thanh "CuteProgressBar" khi So sánh giống chó
     comparisonMetrics: {
       trainability: { type: Number, required: true, min: 1, max: 5 },
       energyLevel: { type: Number, required: true, min: 1, max: 5 },
       apartmentFriendly: { type: Number, required: true, min: 1, max: 5 },
       kidFriendly: { type: Number, required: true, min: 1, max: 5 },
     },
-    // 4. Phục vụ hiển thị Tag trực quan & Lời khuyên
-    coreTraits: [
-      {
-        type: String,
-        trim: true,
-      },
-    ],
-    careAdvice: [
-      {
-        type: String,
-        trim: true,
-      },
-    ],
-    sampleImages: [
-      {
-        type: String,
-        trim: true,
-      },
-    ],
-    // 5. Fun Facts đặc thù của riêng giống loài đó
-    breedSpecificFacts: [
-      {
-        type: String,
-        trim: true,
-      },
-    ],
+    coreTraits: [{ type: String, trim: true }],
+    careAdvice: [{ type: String, trim: true }],
+    sampleImages: [{ type: String, trim: true }], // Chỉ dùng cho Slide/Gallery ở trang chi tiết
+    breedSpecificFacts: [{ type: String, trim: true }],
     schemaVersion: {
       type: Number,
       default: 1,
@@ -80,5 +73,12 @@ const dogBreedSchema = new mongoose.Schema(
   },
 );
 
-// Sử dụng Named Export
+// TỐI ƯU HÓA ĐÁNH INDEX TEXT: Thêm cả description vào để tìm kiếm thông minh hơn
+dogBreedSchema.index({
+  name: "text",
+  description: "text", // Thêm vào text index
+  coreTraits: "text",
+  breedSpecificFacts: "text",
+});
+
 export const Breed = mongoose.model("DogBreed", dogBreedSchema);

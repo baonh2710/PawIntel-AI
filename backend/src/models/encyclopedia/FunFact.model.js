@@ -1,13 +1,12 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const funFactSchema = new mongoose.Schema(
   {
     category: {
       type: String,
       required: true,
-      trim: true,
-      // Đã cập nhật enum khớp với dữ liệu từ file seed.js
-      enum: ['intelligence', 'history', 'health', 'behavior', 'general'],
+      // Ép kiểu chuẩn Tiếng Anh để dễ dàng filter hiển thị ngẫu nhiên trên UI
+      enum: ["intelligence", "health", "behavior", "history"],
     },
     content: {
       type: String,
@@ -21,8 +20,7 @@ const funFactSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
-// Sử dụng Named Export
-export const FunFact = mongoose.model('FunFact', funFactSchema);
+export const FunFact = mongoose.model("FunFact", funFactSchema);
