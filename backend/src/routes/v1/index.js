@@ -1,6 +1,6 @@
 import express from "express";
 import { aiRouter } from "./ai.routes.js";
-import {encyclopediaRouter} from "./encyclopedia.routes.js";
+import { encyclopediaRouter } from "./encyclopedia.routes.js";
 
 const v1Router = express.Router();
 

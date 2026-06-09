@@ -3,18 +3,15 @@ export class BaseRepository {
     this.model = model;
   }
 
-  // Tìm một Document (dùng .lean() để tăng tốc độ parse JSON)
-  async findOne(condition) {
-    return await this.model.findOne(condition).lean();
+  async find(filter = {}, projection = {}, options = {}) {
+    return await this.model.find(filter, projection, options).lean();
   }
 
-  // Tìm tất cả
-  async findAll(condition = {}) {
-    return await this.model.find(condition).lean();
+  async findOne(filter = {}, projection = {}) {
+    return await this.model.findOne(filter, projection).lean();
   }
 
-  // Tạo mới
-  async create(data) {
-    return await this.model.create(data);
+  async countDocuments(filter = {}) {
+    return await this.model.countDocuments(filter);
   }
 }

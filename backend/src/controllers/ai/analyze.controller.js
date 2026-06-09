@@ -1,32 +1,38 @@
-import { predictDogBreed } from "../../services/ai/analyze.service.js";
+import { AnalyzeService } from "../../services/ai/analyze.service.js";
 
-export const analyzeImage = async (req, res) => {
+export const analyzeDogPicture = async (req, res) => {
   try {
-    // 1. Kiểm tra xem có file tải lên không
+    // Kiểm tra chốt chặn nếu người dùng không upload file ảnh lên qua FormData
     if (!req.file) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "No image file provided. Please upload an image." 
+      return res.status(400).json({
+        success: false,
+        message:
+          "Multipart Request Error: No binary file found under the form-data key 'file'.",
       });
     }
 
-    // 2. Chuyển file xuống tầng Service để xử lý (Gọi Python + Query DB)
-    const result = await predictDogBreed(
-      req.file.buffer, 
-      req.file.originalname, 
-      req.file.mimetype
+    // Gửi buffer ảnh thật sang tầng Service xử lý tích hợp liên tầng
+    const integrationResult = await AnalyzeService.predictAndPopulateDog(
+      req.file.buffer,
+      req.file.originalname,
     );
 
-    // 3. Trả về cho React
-    return res.status(200).json(result);
-    
+    return res.status(200).json({
+      success: true,
+      message: "AI image diagnostics mapping completely successful.",
+      data: integrationResult,
+    });
   } catch (error) {
-    console.error("🔴 [Analyze Controller Error]:", error.message);
-    
-    // Đảm bảo luôn trả về JSON để Frontend không bị lỗi "Unexpected token < or I"
-    return res.status(500).json({ 
-      success: false, 
-      message: `System Error: ${error.message}. (Did you forget to start the Python AI Server?)` 
+    console.error("🔴 [Analyze Controller Core Error]:", error.message);
+
+    // Tách biệt lỗi do sync data hoặc kết nối để trả mã phù hợp
+    const statusCode = error.message.includes("Data Sync Error")
+      ? { code: 422 }
+      : { code: 500 };
+
+    return res.status(statusCode.code).json({
+      success: false,
+      message: `AI Pipeline Diagnostic Failure: ${error.message}`,
     });
   }
 };

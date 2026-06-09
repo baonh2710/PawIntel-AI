@@ -1,139 +1,122 @@
 import axios from "axios";
 import FormData from "form-data";
 import { breedRepository } from "../../repositories/encyclopedia/breed.repository.js";
-import { FunFact } from "../../models/encyclopedia/FunFact.model.js";
+import { funFactRepository } from "../../repositories/encyclopedia/funfact.repository.js";
 
-/**
- * Gửi file ảnh sang Python AI Microservice để phân tích
- * Sau đó lấy kết quả để tra cứu thông tin chi tiết từ Database
- */
-export const predictDogBreed = async (fileBuffer, originalName, mimeType) => {
-  const formData = new FormData();
+export class AnalyzeService {
+  /**
+   * Truyền thông stream sang FastAPI Python, phân tích Top 3 và map dữ liệu chi tiết nuông chiều UI
+   * @param {Buffer} fileBuffer - Buffer của ảnh thật từ req.file.buffer
+   * @param {string} originalName - Tên file gốc từ client gửi lên
+   */
+  static async predictAndPopulateDog(fileBuffer, originalName) {
+    // 1. Gói FormData gửi binary stream sang FastAPI Python
+    const form = new FormData();
+    form.append("file", fileBuffer, {
+      filename: originalName || "upload_image.jpg",
+      contentType: "image/jpeg",
+    });
 
-  formData.append("file", fileBuffer, {
-    filename: originalName,
-    contentType: mimeType,
-  });
+    const pythonAiUrl =
+      process.env.PYTHON_AI_SERVICE_URL || "http://localhost:8000/predict";
+    let aiResponseData;
 
-  const pythonApiUrl =
-    process.env.PYTHON_API_URL || "http://localhost:8000/predict";
+    try {
+      const aiResponse = await axios.post(pythonAiUrl, form, {
+        headers: { ...form.getHeaders() },
+        timeout: 10000, // Giới hạn 10s bảo vệ server
+      });
 
-  // 1. Gửi ảnh sang Python AI
-  const response = await axios.post(pythonApiUrl, formData, {
-    headers: {
-      ...formData.getHeaders(),
-    },
-  });
+      aiResponseData = aiResponse.data;
+    } catch (error) {
+      console.error(
+        "🔴 [FastAPI Connection Error]: Không thể kết nối Service Python AI.",
+        error.message,
+      );
+      throw new Error(
+        `AI Prediction Service integration failure: ${error.message}`,
+      );
+    }
 
-  const aiResult = response.data;
+    // 2. Chốt chặn Ngưỡng độ tin cậy (Threshold) từ Python AI
+    // Nếu Python trả về success: false (độ tin cậy quá thấp), trả thẳng thông tin về cho Frontend render thông báo
+    if (!aiResponseData.success) {
+      return {
+        success: false,
+        message:
+          aiResponseData.message ||
+          "Không thể nhận diện rõ ràng giống chó trong ảnh.",
+        predictions: [],
+      };
+    }
 
-  // 2. Xử lý logic nếu AI không nhận diện được (API Python trả về lỗi hoặc success: false)
-  if (!aiResult.success) {
+    const aiPredictions = aiResponseData.predictions || []; // Mảng chứa Top 3 dạng: [{breed: "Collie", confidence: 0.85}, ...]
+
+    // Chuẩn hóa toàn bộ danh sách nhãn giống chó thu được về chữ thường (lowercase) để tìm kiếm chính xác trong DB
+    const breedIds = aiPredictions.map((p) => 
+      p.breed ? p.breed.trim().toLowerCase().replace(/ /g, "_") : ""
+    );
+
+    // 3. Thực thi truy vấn đồng thời dữ liệu từ MongoDB để tối ưu tốc độ phản hồi (IO Non-blocking)
+    // - Bốc tất cả bản ghi giống chó có breedId nằm trong danh sách Top 3
+    // - Bốc ngẫu nhiên một câu FunFact toàn hệ thống tăng tương tác
+    const [breedsInDb, randomFact] = await Promise.all([
+      breedRepository.find({ breedId: { $in: breedIds } }),
+      funFactRepository.getRandomFunFact(),
+    ]);
+
+    // Chuyển mảng kết quả DB thành một Map Object để tra cứu O(1) theo breedId khi gộp data
+    const breedDbMap = new Map(breedsInDb.map((b) => [b.breedId, b]));
+
+    // 4. Tổ chức gộp cấu trúc dữ liệu mượt mà, bao bọc Top 3 đầy đủ thông tin
+    const populatedPredictions = aiPredictions.map((prediction) => {
+      const normalizedId = prediction.breed.toLowerCase().trim();
+      const dbDetails = breedDbMap.get(normalizedId);
+
+      // Phòng hờ trường hợp AI nhận diện ra nhãn mới nhưng MongoDB chưa kịp seed dữ liệu giống chó đó
+      if (!dbDetails) {
+        return {
+          breed: prediction.breed,
+          confidencePercentage: Math.round(prediction.confidence * 100),
+          dbSynced: false,
+          message:
+            "Dữ liệu chi tiết của giống loài này hiện đang được Canis Archive cập nhật.",
+        };
+      }
+
+      // BUSINESS RULE: Nhân đôi metrics từ thang 1-5 lên thang 1-10 cho từng giống chó được tìm thấy
+      const transformedMetrics = dbDetails.comparisonMetrics
+        ? {
+            trainability: dbDetails.comparisonMetrics.trainability * 2,
+            energyLevel: dbDetails.comparisonMetrics.energyLevel * 2,
+            apartmentFriendly:
+              dbDetails.comparisonMetrics.apartmentFriendly * 2,
+            kidFriendly: dbDetails.comparisonMetrics.kidFriendly * 2,
+          }
+        : null;
+
+      // Trả về cục data hỗn hợp hoàn chỉnh cho loài này
+      return {
+        breed: dbDetails.name, // Lấy tên hiển thị đẹp trên UI (Ví dụ: "Collie")
+        confidencePercentage: Math.round(prediction.confidence * 100),
+        dbSynced: true,
+        details: {
+          ...dbDetails,
+          comparisonMetrics: transformedMetrics,
+        },
+      };
+    });
+
+    // 5. Đóng gói Payload tối thượng gửi về cho Frontend cưng nựng UI
     return {
-      success: false,
-      ai_analysis: aiResult,
-      encyclopedia: null,
-      fun_fact: null,
-      message: aiResult.message || "Failed to analyze image.",
+      success: true,
+      message:
+        "AI image diagnostics and multi-breed profile mapping successful.",
+      analyzedAt: new Date(),
+      predictions: populatedPredictions, // Mảng Top 3 đã được kích hoạt full profile và x2 điểm
+      systemFunFact: randomFact
+        ? randomFact.fact || randomFact.content
+        : "Dogs have three eyelids, including one that keeps their eyes moist and protected!",
     };
   }
-
-  // 3. Trích xuất giống chó Top 1 từ AI và gọi xuống Database
-  const topMatch =
-    aiResult.predictions && aiResult.predictions.length > 0
-      ? aiResult.predictions[0]
-      : null;
-
-  if (!topMatch) {
-    return {
-      success: false,
-      ai_analysis: aiResult,
-      encyclopedia: null,
-      fun_fact: null,
-      message: "AI did not return any valid predictions.",
-    };
-  }
-
-  const breedIdFromAI = topMatch.breed;
-  let breedDetails = null;
-
-  if (breedIdFromAI) {
-    breedDetails = await breedRepository.findByBreedId(breedIdFromAI);
-  }
-
-  // 4. Bốc ngẫu nhiên 1 câu Fun Fact từ DB cho giao diện thêm sinh động
-  const totalFacts = await FunFact.countDocuments();
-  let randomFact = null;
-  if (totalFacts > 0) {
-    const randomIndex = Math.floor(Math.random() * totalFacts);
-    randomFact = await FunFact.findOne().skip(randomIndex).lean();
-  }
-
-  // 5. [REFACTOR] Khớp nối & Chuẩn hóa cấu trúc Dữ liệu để nuông chiều UI
-  const otherMatchesFormatted = (aiResult.predictions || [])
-    .slice(1, 4) // Lấy tối đa 3 giống chó xếp sau để đưa vào mục "Other Possible Matches"
-    .map((p) => ({
-      breed: p.breed
-        .split("_")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(" "), // Corgi_pembroke -> Corgi Pembroke
-      confidence: Math.round(p.confidence * 100), // Đổi từ hệ thập phân (0.85) sang phần trăm (85%)
-    }));
-
-  const uiFormattedData = {
-    topMatch: {
-      breed: breedDetails ? breedDetails.name : breedIdFromAI,
-      confidence: Math.round(topMatch.confidence * 100), // Đổi sang % để ném vào Badge tròn
-    },
-    otherMatches: otherMatchesFormatted,
-    encyclopedia: breedDetails
-      ? {
-          name: breedDetails.name,
-          scientificName: `Canis lupus familiaris • Origin: ${breedDetails.origin || "Unknown"}`,
-          primaryImage:
-            breedDetails.sampleImages?.[0] ||
-            "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800",
-          coreTraits: breedDetails.coreTraits || [],
-          physicalStats: breedDetails.physicalStats || {
-            weight: "N/A",
-            height: "N/A",
-            lifespan: "N/A",
-          },
-          // Nhân 2 điểm số từ thang 1-5 trong DB lên thang 1-10 để thanh Progress Bar hiển thị chuẩn tỉ lệ
-          comparisonMetrics: {
-            energyLevel: (breedDetails.comparisonMetrics?.energyLevel || 3) * 2,
-            sociability: (breedDetails.comparisonMetrics?.kidFriendly || 3) * 2, // Map tạm độ thân thiện
-            trainability:
-              (breedDetails.comparisonMetrics?.trainability || 3) * 2,
-            guarding:
-              (breedDetails.comparisonMetrics?.apartmentFriendly || 3) * 2,
-          },
-          story:
-            breedDetails.description ||
-            breedDetails.breedSpecificFacts?.[0] ||
-            "No overview available.",
-          tags: [
-            breedDetails.lifestyleFilters?.size,
-            `${breedDetails.lifestyleFilters?.sheddingLevel} Shedding`,
-            breedDetails.lifestyleFilters?.spaceRequirement,
-          ].filter(Boolean),
-          careAdvice: (breedDetails.careAdvice || []).map((advice, index) => ({
-            title: index === 0 ? "Exercise Needs" : "Grooming & Upkeep",
-            desc: advice,
-          })),
-        }
-      : null,
-    funFact: randomFact
-      ? randomFact.content
-      : breedDetails?.breedSpecificFacts?.[0] ||
-        "Dogs are human's best friends.",
-  };
-
-  return {
-    success: true,
-    data: uiFormattedData, // Đóng gói toàn bộ cục data mượt mà này gửi về cho Controller
-    message: breedDetails
-      ? "Analysis completed and breed insights retrieved successfully."
-      : `Analysis completed for '${breedIdFromAI}', but no encyclopedia data was found.`,
-  };
-};
+}

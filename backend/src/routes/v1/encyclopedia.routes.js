@@ -1,20 +1,12 @@
-import express from "express";
-import {
-  getBreeds,
-  getBreedById,
-  compareBreeds,
-} from "../../controllers/encyclopedia/breed.controller.js";
+import { Router } from 'express';
+import { getBreedsList, getBreedProfile } from '../../controllers/encyclopedia/breed.controller.js';
 
-const encyclopediaRouter = express.Router();
+const encyclopediaRouter = Router();
 
-// Route 1: Bàn cân thú cưng (VD: /api/v1/encyclopedia/compare?breed1=corgi&breed2=golden)
-// Phải đặt route này lên trước /:id để tránh xung đột params
-encyclopediaRouter.get("/compare", compareBreeds);
+// GET /api/v1/breeds - Trang danh sách + Bộ lọc + Tìm kiếm (Tối ưu select mảng nặng)
+encyclopediaRouter.get('/breeds', getBreedsList);
 
-// Route 2: Lấy danh sách & Lọc (VD: /api/v1/encyclopedia?size=Small)
-encyclopediaRouter.get("/", getBreeds);
-
-// Route 3: Xem chi tiết 1 giống (VD: /api/v1/encyclopedia/golden_retriever)
-encyclopediaRouter.get("/:id", getBreedById);
+// GET /api/v1/breeds/:breedId - Trang chi tiết chuẩn tạp chí (Trả đầy đủ Object)
+encyclopediaRouter.get('/breeds/:breedId', getBreedProfile);
 
 export { encyclopediaRouter };
