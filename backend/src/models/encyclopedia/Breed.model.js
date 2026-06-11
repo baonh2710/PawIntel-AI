@@ -2,40 +2,19 @@ import mongoose from "mongoose";
 
 const dogBreedSchema = new mongoose.Schema(
   {
-    breedId: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true, // VD: "golden_retriever" (Must match Python AI output exactly)
-    },
-    name: {
-      type: String,
-      required: true,
-      trim: true, // VD: "Golden Retriever"
-    },
-    // BỔ SUNG 1: Đoạn mô tả ngắn giới thiệu giống loài
-    description: {
-      type: String,
-      trim: true,
-      default: "",
-    },
-    // BỔ SUNG 2: Xuất xứ của giống chó
-    origin: {
-      type: String,
-      trim: true,
-      default: "Không rõ",
-    },
-    // BỔ SUNG 3: Ảnh đại diện siêu nhẹ cho trang danh sách (List Page)
-    thumbnail: {
-      type: String,
-      trim: true,
-      default: "",
-    },
+    breedId: { type: String, required: true, unique: true, trim: true },
+    name: { type: String, required: true, trim: true },
+    description: { type: String, trim: true, default: "" },
+    origin: { type: String, trim: true, default: "Unknown" },
+    thumbnail: { type: String, trim: true, default: "" },
+    historySnippet: { type: String, trim: true, default: "" }, // [MỚI V2] Giai thoại lịch sử
+
     physicalStats: {
       weight: { type: String, default: "N/A" },
       height: { type: String, default: "N/A" },
       lifespan: { type: String, default: "N/A" },
     },
+
     lifestyleFilters: {
       size: {
         type: String,
@@ -52,33 +31,49 @@ const dogBreedSchema = new mongoose.Schema(
         required: true,
         enum: ["Apartment", "Small Yard", "Large Yard"],
       },
+      barkingLevel: {
+        type: String,
+        required: true,
+        enum: ["Quiet", "Moderate", "Vocal"],
+      }, // [MỚI V2]
+      weatherTolerance: {
+        type: String,
+        required: true,
+        enum: ["Cold Only", "Hot Only", "Adaptable"],
+      }, // [MỚI V2]
+      vulnerabilityToDisease: {
+        type: String,
+        required: true,
+        enum: ["Hardy", "Moderate", "Delicate"],
+      }, // [MỚI V2]
     },
+
     comparisonMetrics: {
       trainability: { type: Number, required: true, min: 1, max: 5 },
       energyLevel: { type: Number, required: true, min: 1, max: 5 },
       apartmentFriendly: { type: Number, required: true, min: 1, max: 5 },
       kidFriendly: { type: Number, required: true, min: 1, max: 5 },
+      aloneTolerance: { type: Number, required: true, min: 1, max: 5 }, // [MỚI V2]
+      petFriendly: { type: Number, required: true, min: 1, max: 5 }, // [MỚI V2]
     },
+
+    healthRisks: [{ type: String, trim: true }], // [MỚI V2] Cảnh báo sức khỏe
     coreTraits: [{ type: String, trim: true }],
     careAdvice: [{ type: String, trim: true }],
-    sampleImages: [{ type: String, trim: true }], // Chỉ dùng cho Slide/Gallery ở trang chi tiết
+    sampleImages: [{ type: String, trim: true }],
     breedSpecificFacts: [{ type: String, trim: true }],
-    schemaVersion: {
-      type: Number,
-      default: 1,
-    },
+    schemaVersion: { type: Number, default: 2 },
   },
-  {
-    timestamps: true,
-  },
+  { timestamps: true },
 );
 
-// TỐI ƯU HÓA ĐÁNH INDEX TEXT: Thêm cả description vào để tìm kiếm thông minh hơn
+// Kích hoạt cụm Text Index (Bao gồm cả historySnippet)
 dogBreedSchema.index({
   name: "text",
-  description: "text", // Thêm vào text index
+  description: "text",
   coreTraits: "text",
   breedSpecificFacts: "text",
+  historySnippet: "text",
 });
 
 export const Breed = mongoose.model("DogBreed", dogBreedSchema);
