@@ -60,7 +60,13 @@ const dogBreedSchema = new mongoose.Schema(
     healthRisks: [{ type: String, trim: true }], // [MỚI V2] Cảnh báo sức khỏe
     coreTraits: [{ type: String, trim: true }],
     careAdvice: [{ type: String, trim: true }],
-    sampleImages: [{ type: String, trim: true }],
+    // Thay thế đoạn sampleImages cũ bằng đoạn này trong Schema
+    visualArchives: [
+      {
+        url: { type: String, required: true, trim: true },
+        caption: { type: String, trim: true, default: "Archival record" },
+      },
+    ],
     breedSpecificFacts: [{ type: String, trim: true }],
     schemaVersion: { type: Number, default: 2 },
   },
@@ -68,12 +74,14 @@ const dogBreedSchema = new mongoose.Schema(
 );
 
 // Kích hoạt cụm Text Index (Bao gồm cả historySnippet)
+// Kích hoạt cụm Text Index (Bao gồm cả historySnippet và caption của ảnh)
 dogBreedSchema.index({
   name: "text",
   description: "text",
   coreTraits: "text",
   breedSpecificFacts: "text",
   historySnippet: "text",
+  "visualArchives.caption": "text", // <--- THÊM DÒNG NÀY VÀO ĐÂY
 });
 
 export const Breed = mongoose.model("DogBreed", dogBreedSchema);

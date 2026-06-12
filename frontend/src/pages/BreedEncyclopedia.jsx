@@ -1,221 +1,448 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
-export const BreedEncyclopedia = () => {
+const API_BASE = "http://localhost:5000/api/v1";
+
+// Đưa object này ra ngoài để làm mốc reset
+const INITIAL_FILTERS = {
+  page: 1,
+  limit: 6,
+  search: "",
+  size: "",
+  sheddingLevel: "",
+  spaceRequirement: "",
+  barkingLevel: "",
+  weatherTolerance: "",
+  vulnerabilityToDisease: "",
+  energyLevel: [],
+  traits: [],
+};
+
+export function BreedEncyclopedia() {
   const [breeds, setBreeds] = useState([]);
-  const [search, setSearch] = useState("");
-  const [size, setSize] = useState("");
-  const [shedding, setShedding] = useState("");
-  const [space, setSpace] = useState("");
-  const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [pagination, setPagination] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Khởi tạo state bằng object mặc định
+  const [filters, setFilters] = useState(INITIAL_FILTERS);
+
   const navigate = useNavigate();
 
-  const fetchBreeds = async () => {
-    setIsLoading(true);
-    try {
-      const params = new URLSearchParams({
-        page,
-        limit: 6,
-        ...(search && { search }),
-        ...(size && { size }),
-        ...(shedding && { sheddingLevel: shedding }),
-        ...(space && { spaceRequirement: space }),
-      });
+  // Kiểm tra xem đã có filter nào được kích hoạt chưa (bỏ qua page và limit)
+  const isFiltered = Object.keys(INITIAL_FILTERS).some((key) => {
+    if (key === "page" || key === "limit") return false;
+    if (Array.isArray(filters[key])) return filters[key].length > 0;
+    return filters[key] !== INITIAL_FILTERS[key];
+  });
 
-      const response = await fetch(
-        `http://localhost:5000/api/v1/breeds?${params.toString()}`,
-      );
-      const json = await response.json();
-      if (json.success) {
-        setBreeds(json.data.breeds);
-        setPagination(json.data.pagination);
-      }
-    } catch (err) {
-      console.error("Lỗi nạp thư viện loài:", err);
-    } finally {
-      setIsLoading(false);
-    }
+  // Hàm Reset
+  const handleResetFilters = () => {
+    setFilters(INITIAL_FILTERS);
   };
 
   useEffect(() => {
-    fetchBreeds();
-  }, [page, size, shedding, space]);
+    const fetchBreeds = async () => {
+      setLoading(true);
+      try {
+        const params = { ...filters };
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    setPage(1);
-    fetchBreeds();
+        // BIẾN ĐỔI DATA: Ép mảng thành chuỗi cách nhau bằng dấu phẩy gửi lên API
+        if (filters.energyLevel.length > 0) {
+          params.energyLevel = filters.energyLevel.join(",");
+        } else {
+          delete params.energyLevel;
+        }
+
+        if (filters.traits.length > 0) {
+          params.traits = filters.traits.join(",");
+        } else {
+          delete params.traits;
+        }
+
+        const response = await axios.get(`${API_BASE}/encyclopedia/breeds`, {
+          params,
+        });
+
+        if (response.data?.success && response.data?.data) {
+          setBreeds(response.data.data.breeds || []);
+          setPagination(response.data.data.pagination || null);
+        } else {
+          setBreeds([]);
+        }
+      } catch (err) {
+        console.error("Lỗi tải danh sách hồ sơ:", err);
+        setBreeds([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const delayDebounceFn = setTimeout(() => {
+      fetchBreeds();
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [filters]);
+
+  // Xử lý Single Checkbox (chỉ chọn 1)
+  const handleSingleFilterChange = (filterKey, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [filterKey]: prev[filterKey] === value ? "" : value,
+      page: 1,
+    }));
+  };
+
+  // Xử lý Multiple Checkbox (chọn nhiều, lưu vào mảng)
+  const handleMultiFilterChange = (filterKey, value) => {
+    setFilters((prev) => {
+      const currentList = prev[filterKey];
+      const isSelected = currentList.includes(value);
+      return {
+        ...prev,
+        [filterKey]: isSelected
+          ? currentList.filter((item) => item !== value) // Bỏ chọn
+          : [...currentList, value], // Thêm vào mảng
+        page: 1,
+      };
+    });
+  };
+
+  const handleSearchChange = (e) => {
+    setFilters((prev) => ({ ...prev, search: e.target.value, page: 1 }));
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= (pagination?.totalPages || 1)) {
+      setFilters((prev) => ({ ...prev, page: newPage }));
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   return (
-    <div className="bg-surface text-on-surface min-h-screen pt-[24px] max-w-7xl mx-auto flex flex-col md:flex-row gap-md p-md">
-      {/* THANH SIDEBAR BỘ LỌC THÔNG MINH */}
-      <aside className="w-full md:w-64 bg-surface-container-low p-md rounded-xl border border-outline-variant space-y-md h-fit">
-        <h2 className="font-headline-md text-primary mb-xs">Filters</h2>
-
-        <div>
-          <label className="block text-label-md font-bold uppercase text-outline tracking-wider mb-xs">
-            Size Group
-          </label>
-          <select
-            value={size}
-            onChange={(e) => {
-              setSize(e.target.value);
-              setPage(1);
-            }}
-            className="w-full rounded-lg bg-white border-outline-variant text-body-sm text-on-surface p-2 focus:ring-primary"
+    <div className="bg-surface text-on-surface font-body-md min-h-screen flex flex-col antialiased selection:bg-tertiary selection:text-on-tertiary">
+      {/* CẬP NHẬT NAVBAR */}
+      <header className="bg-surface border-b border-secondary/20 sticky top-0 z-50">
+        <div className="flex justify-between items-center px-margin-mobile md:px-margin-desktop py-4 max-w-container-max mx-auto w-full">
+          <div
+            className="font-headline-lg text-primary tracking-tight cursor-pointer"
+            onClick={() => navigate("/")}
           >
-            <option value="">All Sizes</option>
-            <option value="Small">Small</option>
-            <option value="Medium">Medium</option>
-            <option value="Large">Large</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-label-md font-bold uppercase text-outline tracking-wider mb-xs">
-            Shedding Intensity
-          </label>
-          <select
-            value={shedding}
-            onChange={(e) => {
-              setShedding(e.target.value);
-              setPage(1);
-            }}
-            className="w-full rounded-lg bg-white border-outline-variant text-body-sm text-on-surface p-2 focus:ring-primary"
-          >
-            <option value="">All Levels</option>
-            <option value="Low">Low Shedding</option>
-            <option value="Medium">Moderate</option>
-            <option value="High">High Shedding</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-label-md font-bold uppercase text-outline tracking-wider mb-xs">
-            Spatial Needs
-          </label>
-          <select
-            value={space}
-            onChange={(e) => {
-              setSpace(e.target.value);
-              setPage(1);
-            }}
-            className="w-full rounded-lg bg-white border-outline-variant text-body-sm text-on-surface p-2 focus:ring-primary"
-          >
-            <option value="">All Spaces</option>
-            <option value="Apartment">Apartment Friendly</option>
-            <option value="Small Yard">Small Yard</option>
-            <option value="Large Yard">Large Yard</option>
-          </select>
-        </div>
-
-        <button
-          onClick={() => {
-            setSize("");
-            setShedding("");
-            setSpace("");
-            setSearch("");
-            setPage(1);
-          }}
-          className="w-full py-2 border border-coral text-coral rounded-lg text-label-md font-bold hover:bg-tertiary-fixed transition-all flex items-center justify-center gap-xs"
-        >
-          <span className="material-symbols-outlined text-[16px]">
-            restart_alt
-          </span>{" "}
-          Reset Filters
-        </button>
-      </aside>
-
-      {/* VÙNG CHÍNH HIỂN THỊ DANH SÁCH KHỐI LƯỚI GRID MOCK-UP */}
-      <div className="flex-1 space-y-md">
-        <form onSubmit={handleSearchSubmit} className="relative w-full">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
-            search
-          </span>
-          <input
-            type="text"
-            placeholder="Search across natural traits & history..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-surface-container-low border border-outline-variant rounded-full pl-10 pr-md py-2 text-body-md focus:ring-1 focus:ring-primary focus:bg-white transition-all"
-          />
-        </form>
-
-        {isLoading ? (
-          <div className="text-center py-lg animate-pulse text-on-surface-variant">
-            Accessing Canis Archive records...
+            Canis Archive
           </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-gutter">
-            {breeds.map((b) => (
-              <article
-                key={b._id}
-                onClick={() => navigate(`/breeds/${b.breedId}`)}
-                className="bg-surface-container-low border border-outline-variant rounded-xl overflow-hidden flex flex-col sm:flex-row h-fit sm:h-56 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
+          <nav className="hidden md:flex gap-8 items-center">
+            <span
+              onClick={() => navigate("/")}
+              className="text-primary border-b-2 border-primary pb-1 font-bold cursor-pointer transition-colors"
+            >
+              Encyclopedia
+            </span>
+            <span
+              onClick={() => navigate("/identify")}
+              className="text-on-surface-variant hover:text-primary pb-1 border-b-2 border-transparent transition-colors cursor-pointer"
+            >
+              Identify
+            </span>
+          </nav>
+          <div className="flex items-center gap-4 text-primary">
+            <button className="md:hidden hover:text-tertiary transition-colors">
+              <span className="material-symbols-outlined">menu</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-12 flex flex-col gap-12">
+        <section className="flex flex-col gap-8">
+          <div className="text-center max-w-2xl mx-auto space-y-4">
+            <h1 className="font-headline-xl text-primary">
+              The Breed Repository
+            </h1>
+            <p className="font-body-md text-on-surface-variant leading-relaxed">
+              An archival collection of canine specimens, cataloged for
+              scholarly review and biological study.
+            </p>
+            <div className="mt-8 relative max-w-md mx-auto">
+              <input
+                className="w-full bg-surface-container-high border-b border-secondary/30 focus:border-primary focus:ring-0 px-4 py-3 bg-transparent text-center font-body-md placeholder:text-on-surface-variant outline-none transition-colors rounded-t-sm shadow-none"
+                placeholder="Search the archive..."
+                type="text"
+                value={filters.search}
+                onChange={handleSearchChange}
+              />
+              <span className="material-symbols-outlined absolute right-4 top-3 text-on-surface-variant">
+                search
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mt-4 items-start">
+            {/* Scrollable Sidebar */}
+            <aside className="md:col-span-3 flex flex-col gap-8 md:sticky md:top-24 md:max-h-[calc(100vh-8rem)] md:overflow-y-auto pr-4 pb-8 custom-scrollbar">
+              {" "}
+              {/* NÚT RESET MINIMALIST - ĐÃ SỬA LẠI */}
+              <div
+                className={`flex justify-end -mb-4 transition-opacity duration-500 ease-in-out ${isFiltered ? "opacity-100" : "opacity-0 pointer-events-none"}`}
               >
-                <img
-                  src={
-                    b.thumbnail ||
-                    "https://images.unsplash.com/photo-1543466835-00a7907e9de1"
-                  }
-                  alt={b.name}
-                  className="w-full sm:w-40 h-40 sm:h-full object-cover"
-                />
-                <div className="p-sm flex flex-col justify-between flex-1">
-                  <div>
-                    <h4 className="font-headline-md text-primary mb-xs">
-                      {b.name}
-                    </h4>
-                    <p className="text-body-sm text-on-surface-variant line-clamp-3">
-                      {b.description}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-md pt-sm border-t border-outline-variant/60 text-label-md text-on-surface-variant font-bold">
-                    <span className="flex items-center gap-xs">
-                      <span className="material-symbols-outlined text-[16px]">
-                        straighten
+                <button
+                  onClick={handleResetFilters}
+                  className="font-label-md uppercase tracking-[0.15em] text-[10px] text-on-surface-variant hover:text-primary transition-colors bg-transparent border-b border-transparent hover:border-primary pb-0.5 p-0 cursor-pointer shadow-none outline-none"
+                >
+                  Reset
+                </button>
+              </div>
+              {/* ADVANCED FILTER: Energy Level */}
+              <div className="flex flex-col gap-4">
+                <h3 className="font-label-md uppercase text-primary tracking-widest border-b border-primary/20 pb-2">
+                  Kinetic Energy
+                </h3>
+                <div className="flex flex-col gap-3">
+                  {[
+                    { label: "Low / Calm", val: "1,2" },
+                    { label: "Moderate", val: "3" },
+                    { label: "High / Athletic", val: "4,5" },
+                  ].map((level) => (
+                    <label
+                      key={level.val}
+                      className="flex items-center gap-3 cursor-pointer group"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={filters.energyLevel.includes(level.val)}
+                        onChange={() =>
+                          handleMultiFilterChange("energyLevel", level.val)
+                        }
+                        className="
+                        appearance-none w-4 h-4 cursor-pointer rounded-sm
+                        border border-primary/40 bg-surface
+                        relative flex items-center justify-center
+                        
+                        /* Hiệu ứng khi được Check: Đổi viền và thêm dấu chấm/vạch ở giữa */
+                        checked:border-primary
+                        after:content-[''] after:w-2 after:h-2 after:bg-primary after:rounded-xs
+                        after:scale-0 checked:after:scale-100 after:transition-transform
+                        
+                        /* Loại bỏ các vòng highlight mặc định gây xấu */
+                        focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/50
+                      "
+                      />
+                      <span className="font-body-sm text-on-surface group-hover:text-primary transition-colors">
+                        {level.label}
                       </span>
-                      {b.physicalStats?.height || "N/A"}
-                    </span>
-                    <span className="flex items-center gap-xs">
-                      <span className="material-symbols-outlined text-[16px]">
-                        weight
+                    </label>
+                  ))}
+                </div>
+              </div>
+              {/* ADVANCED FILTER: Traits */}
+              <div className="flex flex-col gap-4">
+                <h3 className="font-label-md uppercase text-primary tracking-widest border-b border-primary/20 pb-2">
+                  Core Temperament
+                </h3>
+                <div className="flex flex-col gap-3">
+                  {[
+                    "Intelligent",
+                    "Friendly",
+                    "Loyal",
+                    "Energetic",
+                    "Protective",
+                  ].map((trait) => (
+                    <label
+                      key={trait}
+                      className="flex items-center gap-3 cursor-pointer group"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={filters.traits.includes(trait)}
+                        onChange={() =>
+                          handleMultiFilterChange("traits", trait)
+                        }
+                        className="
+                        appearance-none w-4 h-4 cursor-pointer rounded-sm
+                        border border-primary/40 bg-surface
+                        relative flex items-center justify-center
+                        
+                        /* Hiệu ứng khi được Check: Đổi viền và thêm dấu chấm/vạch ở giữa */
+                        checked:border-primary
+                        after:content-[''] after:w-2 after:h-2 after:bg-primary after:rounded-xs
+                        after:scale-0 checked:after:scale-100 after:transition-transform
+                        
+                        /* Loại bỏ các vòng highlight mặc định gây xấu */
+                        focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/50
+                      "
+                      />
+                      <span className="font-body-sm text-on-surface group-hover:text-primary transition-colors">
+                        {trait}
                       </span>
-                      {b.physicalStats?.weight || "N/A"}
-                    </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              {/* Basic Lifestyle Filters */}
+              {[
+                {
+                  key: "size",
+                  title: "Morphology Size",
+                  options: ["Small", "Medium", "Large"],
+                },
+                {
+                  key: "sheddingLevel",
+                  title: "Shedding Level",
+                  options: ["Low", "Medium", "High"],
+                },
+                {
+                  key: "spaceRequirement",
+                  title: "Habitat Size",
+                  options: ["Apartment", "Small Yard", "Large Yard", "Acreage"],
+                },
+                {
+                  key: "barkingLevel",
+                  title: "Vocalization",
+                  options: ["Quiet", "Moderate", "Vocal"],
+                },
+                {
+                  key: "weatherTolerance",
+                  title: "Climate Adaptability",
+                  options: ["Warm", "Cold", "Adaptable"],
+                },
+                {
+                  key: "vulnerabilityToDisease",
+                  title: "Pathological Resist.",
+                  options: ["Hardy", "Moderate", "Fragile"],
+                },
+              ].map((filterBlock) => (
+                <div key={filterBlock.key} className="flex flex-col gap-4">
+                  <h3 className="font-label-md uppercase text-on-surface-variant tracking-widest border-b border-secondary/20 pb-2">
+                    {filterBlock.title}
+                  </h3>
+                  <div className="flex flex-col gap-3">
+                    {filterBlock.options.map((opt) => (
+                      <label
+                        key={opt}
+                        className="flex items-center gap-3 cursor-pointer group"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={filters[filterBlock.key] === opt}
+                          onChange={() =>
+                            handleSingleFilterChange(filterBlock.key, opt)
+                          }
+                          className="
+                          appearance-none w-4 h-4 cursor-pointer rounded-sm
+                          border border-primary/40 bg-surface
+                          relative flex items-center justify-center
+                          
+                          /* Hiệu ứng khi được Check: Đổi viền và thêm dấu chấm/vạch ở giữa */
+                          checked:border-primary
+                          after:content-[''] after:w-2 after:h-2 after:bg-primary after:rounded-xs
+                          after:scale-0 checked:after:scale-100 after:transition-transform
+                          
+                          /* Loại bỏ các vòng highlight mặc định gây xấu */
+                          focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/50
+                        "
+                        />
+                        <span className="font-body-sm text-on-surface group-hover:text-primary transition-colors">
+                          {opt}
+                        </span>
+                      </label>
+                    ))}
                   </div>
                 </div>
-              </article>
-            ))}
-          </div>
-        )}
+              ))}
+            </aside>
 
-        {/* PHÂN TRANG METADATA PAGER */}
-        {pagination && pagination.totalPages > 1 && (
-          <div className="flex justify-center items-center gap-md pt-md">
-            <button
-              disabled={page === 1}
-              onClick={() => setPage((p) => p - 1)}
-              className="px-sm py-1 border rounded-lg disabled:opacity-40 text-body-sm font-bold"
-            >
-              Prev
-            </button>
-            <span className="text-body-sm text-on-surface-variant">
-              Page {pagination.currentPage} of {pagination.totalPages}
-            </span>
-            <button
-              disabled={page === pagination.totalPages}
-              onClick={() => setPage((p) => p + 1)}
-              className="px-sm py-1 border rounded-lg disabled:opacity-40 text-body-sm font-bold"
-            >
-              Next
-            </button>
+            {/* Grid Canvas & Pagination */}
+            <div className="md:col-span-9 flex flex-col gap-12">
+              {loading ? (
+                <div className="w-full py-24 flex justify-center items-center">
+                  <div className="w-8 h-8 border-2 border-secondary/20 border-t-primary rounded-full animate-spin"></div>
+                </div>
+              ) : breeds.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {breeds.map((breed, index) => (
+                    <article
+                      key={breed.breedId}
+                      onClick={() => navigate(`/breeds/${breed.breedId}`)}
+                      className="group cursor-pointer border border-secondary/20 p-4 flex flex-col gap-4 bg-surface hover:bg-surface-container transition-colors shadow-none"
+                    >
+                      <div className="aspect-[4/3] w-full overflow-hidden bg-surface-container-high relative border border-secondary/10 shadow-none">
+                        <img
+                          alt={`${breed.name} profile`}
+                          className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 ease-out"
+                          src={
+                            breed.thumbnail ||
+                            "https://placehold.co/600x450/efe8d5/154212?text=No+Image"
+                          }
+                        />
+                        <div className="absolute top-3 left-3 flex gap-2">
+                          <span className="px-2.5 py-1 bg-[#e3a392]/25 text-[#1e1c10] font-label-md font-semibold text-[10px] uppercase tracking-wider rounded-sm backdrop-blur-md shadow-none">
+                            {breed.lifestyleFilters?.size || "Canine"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <h2 className="font-headline-lg-mobile md:font-headline-lg text-primary group-hover:text-surface-tint transition-colors">
+                          {breed.name}
+                        </h2>
+                        <p className="font-body-sm text-on-surface-variant italic line-clamp-2">
+                          {breed.description}
+                        </p>
+                      </div>
+                      <div className="mt-auto border-t border-secondary/20 pt-3 flex justify-between items-center">
+                        <span className="font-body-sm text-on-surface-variant uppercase tracking-widest text-[11px]">
+                          View Archival Record
+                        </span>
+                        <span className="material-symbols-outlined text-secondary/50 group-hover:text-primary transition-colors">
+                          arrow_forward
+                        </span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="w-full py-24 flex flex-col items-center justify-center text-center gap-4">
+                  <span className="material-symbols-outlined text-4xl text-secondary/50">
+                    find_in_page
+                  </span>
+                  <p className="font-body-md text-on-surface-variant italic">
+                    No botanical or biological records found for this query.
+                  </p>
+                </div>
+              )}
+
+              {/* Pagination */}
+              {pagination && pagination.totalPages > 1 && !loading && (
+                <div className="flex justify-between items-center border-t border-secondary/20 pt-6 mt-4">
+                  <button
+                    onClick={() => handlePageChange(pagination.currentPage - 1)}
+                    disabled={pagination.currentPage === 1}
+                    className="flex items-center gap-2 font-label-md uppercase tracking-widest text-secondary hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-0 shadow-none"
+                  >
+                    <span className="material-symbols-outlined text-sm">
+                      arrow_back
+                    </span>
+                    Previous
+                  </button>
+                  <span className="font-body-sm text-on-surface-variant">
+                    Page {pagination.currentPage} of {pagination.totalPages}
+                  </span>
+                  <button
+                    onClick={() => handlePageChange(pagination.currentPage + 1)}
+                    disabled={pagination.currentPage === pagination.totalPages}
+                    className="flex items-center gap-2 font-label-md uppercase tracking-widest text-secondary hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-0 shadow-none"
+                  >
+                    Next
+                    <span className="material-symbols-outlined text-sm">
+                      arrow_forward
+                    </span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </div>
+        </section>
+      </main>
     </div>
   );
-};
+}

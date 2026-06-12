@@ -18,6 +18,8 @@ export class BreedRepository extends BaseRepository {
     barkingLevel,
     weatherTolerance,
     vulnerabilityToDisease,
+    energyLevel,
+    traits,
     skip,
     limit,
   }) {
@@ -36,7 +38,22 @@ export class BreedRepository extends BaseRepository {
     if (vulnerabilityToDisease)
       filter["lifestyleFilters.vulnerabilityToDisease"] =
         vulnerabilityToDisease;
+    // ... code cũ của bạn
+    // [BỔ SUNG V2] Lọc theo chỉ số năng lượng (1-5)
+    // Frontend gửi lên dạng: "4,5" (High) hoặc "1,2" (Low)
+    if (energyLevel) {
+      const levels = energyLevel.split(",").map(Number);
+      filter["comparisonMetrics.energyLevel"] = { $in: levels };
+    }
 
+    // [BỔ SUNG V2] Lọc theo tính cách (Mảng chuỗi)
+    // Frontend gửi lên dạng: "Friendly,Intelligent"
+    if (traits) {
+      const traitArray = traits.split(",");
+      filter["coreTraits"] = { $all: traitArray };
+    }
+
+    // Projection...
     // Projection: Loại bỏ các mảng nặng, GIỮ LẠI historySnippet
     const projection = {
       breedId: 1,
@@ -51,7 +68,7 @@ export class BreedRepository extends BaseRepository {
 
     const options = { skip, limit };
     if (search) options.sort = { score: { $meta: "textScore" } };
-    else options.sort = { createdAt: -1 };
+    else options.sort = { _id: -1 };
 
     const items = await this.find(filter, projection, options);
     const totalItems = await this.countDocuments(filter);
