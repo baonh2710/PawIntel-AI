@@ -157,7 +157,6 @@ venv.bak/
 
 # AI Models & Data (Nếu dự án có làm về Trí tuệ nhân tạo)
 *.h5
-*.keras
 *.pt
 *.weights
 dataset/
