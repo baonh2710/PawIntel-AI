@@ -1,7 +1,7 @@
 import axios from "axios";
 import FormData from "form-data";
 import { breedRepository } from "../../repositories/encyclopedia/breed.repository.js";
-import { funFactRepository } from "../../repositories/encyclopedia/funfact.repository.js";
+import { FunFactService } from "../encyclopedia/funfact.service.js";
 
 export class AnalyzeService {
   /**
@@ -53,7 +53,7 @@ export class AnalyzeService {
     // Truy vấn đồng thời giống chó trong danh sách và bốc ngẫu nhiên 1 câu FunFact
     const [breedsInDb, randomFact] = await Promise.all([
       breedRepository.find({ breedId: { $in: breedIds } }),
-      funFactRepository.getRandomFunFact(),
+      FunFactService.getRandomArchivalFact(),
     ]);
 
     // Tạo Map Object với key chuẩn hóa để tra cứu O(1)
@@ -91,7 +91,7 @@ export class AnalyzeService {
       analyzedAt: new Date(),
       predictions: populatedPredictions,
       systemFunFact: randomFact
-        ? randomFact.fact || randomFact.content
+        ? randomFact
         : "Dogs have three eyelids, including one that keeps their eyes moist and protected!",
     };
   }

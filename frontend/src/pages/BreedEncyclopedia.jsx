@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { Footer } from "@/components/footer";
 
 const API_BASE = "http://localhost:5000/api/v1";
 
-// Đưa object này ra ngoài để làm mốc reset
+// ĐÃ BỎ: traits
 const INITIAL_FILTERS = {
   page: 1,
-  limit: 6,
+  limit: 12, // Tăng limit lên 12 để chia hết cho 3 cột
   search: "",
   size: "",
   sheddingLevel: "",
@@ -16,7 +17,6 @@ const INITIAL_FILTERS = {
   weatherTolerance: "",
   vulnerabilityToDisease: "",
   energyLevel: [],
-  traits: [],
 };
 
 export function BreedEncyclopedia() {
@@ -24,19 +24,15 @@ export function BreedEncyclopedia() {
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Khởi tạo state bằng object mặc định
   const [filters, setFilters] = useState(INITIAL_FILTERS);
-
   const navigate = useNavigate();
 
-  // Kiểm tra xem đã có filter nào được kích hoạt chưa (bỏ qua page và limit)
   const isFiltered = Object.keys(INITIAL_FILTERS).some((key) => {
     if (key === "page" || key === "limit") return false;
     if (Array.isArray(filters[key])) return filters[key].length > 0;
     return filters[key] !== INITIAL_FILTERS[key];
   });
 
-  // Hàm Reset
   const handleResetFilters = () => {
     setFilters(INITIAL_FILTERS);
   };
@@ -47,17 +43,10 @@ export function BreedEncyclopedia() {
       try {
         const params = { ...filters };
 
-        // BIẾN ĐỔI DATA: Ép mảng thành chuỗi cách nhau bằng dấu phẩy gửi lên API
         if (filters.energyLevel.length > 0) {
           params.energyLevel = filters.energyLevel.join(",");
         } else {
           delete params.energyLevel;
-        }
-
-        if (filters.traits.length > 0) {
-          params.traits = filters.traits.join(",");
-        } else {
-          delete params.traits;
         }
 
         const response = await axios.get(`${API_BASE}/encyclopedia/breeds`, {
@@ -85,7 +74,6 @@ export function BreedEncyclopedia() {
     return () => clearTimeout(delayDebounceFn);
   }, [filters]);
 
-  // Xử lý Single Checkbox (chỉ chọn 1)
   const handleSingleFilterChange = (filterKey, value) => {
     setFilters((prev) => ({
       ...prev,
@@ -94,7 +82,6 @@ export function BreedEncyclopedia() {
     }));
   };
 
-  // Xử lý Multiple Checkbox (chọn nhiều, lưu vào mảng)
   const handleMultiFilterChange = (filterKey, value) => {
     setFilters((prev) => {
       const currentList = prev[filterKey];
@@ -102,8 +89,8 @@ export function BreedEncyclopedia() {
       return {
         ...prev,
         [filterKey]: isSelected
-          ? currentList.filter((item) => item !== value) // Bỏ chọn
-          : [...currentList, value], // Thêm vào mảng
+          ? currentList.filter((item) => item !== value)
+          : [...currentList, value],
         page: 1,
       };
     });
@@ -122,9 +109,9 @@ export function BreedEncyclopedia() {
 
   return (
     <div className="bg-surface text-on-surface font-body-md min-h-screen flex flex-col antialiased selection:bg-tertiary selection:text-on-tertiary">
-      {/* CẬP NHẬT NAVBAR */}
       <header className="bg-surface border-b border-secondary/20 sticky top-0 z-50">
-        <div className="flex justify-between items-center px-margin-mobile md:px-margin-desktop py-4 max-w-container-max mx-auto w-full">
+        {/* MỞ RỘNG LAYOUT LÊN 1280px */}
+        <div className="flex justify-between items-center px-margin-mobile md:px-margin-desktop py-4 max-w-[1280px] mx-auto w-full">
           <div
             className="font-headline-lg text-primary tracking-tight cursor-pointer"
             onClick={() => navigate("/")}
@@ -145,16 +132,10 @@ export function BreedEncyclopedia() {
               Identify
             </span>
           </nav>
-          <div className="flex items-center gap-4 text-primary">
-            <button className="md:hidden hover:text-tertiary transition-colors">
-              <span className="material-symbols-outlined">menu</span>
-            </button>
-          </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-12 flex flex-col gap-12">
+      <main className="flex-grow w-full max-w-[1280px] mx-auto px-margin-mobile md:px-margin-desktop py-12 flex flex-col gap-12">
         <section className="flex flex-col gap-8">
           <div className="text-center max-w-2xl mx-auto space-y-4">
             <h1 className="font-headline-xl text-primary">
@@ -178,11 +159,8 @@ export function BreedEncyclopedia() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mt-4 items-start">
-            {/* Scrollable Sidebar */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-16 mt-4 items-start">
             <aside className="md:col-span-3 flex flex-col gap-8 md:sticky md:top-24 md:max-h-[calc(100vh-8rem)] md:overflow-y-auto pr-4 pb-8 custom-scrollbar">
-              {" "}
-              {/* NÚT RESET MINIMALIST - ĐÃ SỬA LẠI */}
               <div
                 className={`flex justify-end -mb-4 transition-opacity duration-500 ease-in-out ${isFiltered ? "opacity-100" : "opacity-0 pointer-events-none"}`}
               >
@@ -193,7 +171,7 @@ export function BreedEncyclopedia() {
                   Reset
                 </button>
               </div>
-              {/* ADVANCED FILTER: Energy Level */}
+
               <div className="flex flex-col gap-4">
                 <h3 className="font-label-md uppercase text-primary tracking-widest border-b border-primary/20 pb-2">
                   Kinetic Energy
@@ -214,19 +192,7 @@ export function BreedEncyclopedia() {
                         onChange={() =>
                           handleMultiFilterChange("energyLevel", level.val)
                         }
-                        className="
-                        appearance-none w-4 h-4 cursor-pointer rounded-sm
-                        border border-primary/40 bg-surface
-                        relative flex items-center justify-center
-                        
-                        /* Hiệu ứng khi được Check: Đổi viền và thêm dấu chấm/vạch ở giữa */
-                        checked:border-primary
-                        after:content-[''] after:w-2 after:h-2 after:bg-primary after:rounded-xs
-                        after:scale-0 checked:after:scale-100 after:transition-transform
-                        
-                        /* Loại bỏ các vòng highlight mặc định gây xấu */
-                        focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/50
-                      "
+                        className="appearance-none w-4 h-4 cursor-pointer rounded-sm border border-primary/40 bg-surface relative flex items-center justify-center checked:border-primary after:content-[''] after:w-2 after:h-2 after:bg-primary after:rounded-xs after:scale-0 checked:after:scale-100 after:transition-transform focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/50"
                       />
                       <span className="font-body-sm text-on-surface group-hover:text-primary transition-colors">
                         {level.label}
@@ -235,51 +201,10 @@ export function BreedEncyclopedia() {
                   ))}
                 </div>
               </div>
-              {/* ADVANCED FILTER: Traits */}
-              <div className="flex flex-col gap-4">
-                <h3 className="font-label-md uppercase text-primary tracking-widest border-b border-primary/20 pb-2">
-                  Core Temperament
-                </h3>
-                <div className="flex flex-col gap-3">
-                  {[
-                    "Intelligent",
-                    "Friendly",
-                    "Loyal",
-                    "Energetic",
-                    "Protective",
-                  ].map((trait) => (
-                    <label
-                      key={trait}
-                      className="flex items-center gap-3 cursor-pointer group"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={filters.traits.includes(trait)}
-                        onChange={() =>
-                          handleMultiFilterChange("traits", trait)
-                        }
-                        className="
-                        appearance-none w-4 h-4 cursor-pointer rounded-sm
-                        border border-primary/40 bg-surface
-                        relative flex items-center justify-center
-                        
-                        /* Hiệu ứng khi được Check: Đổi viền và thêm dấu chấm/vạch ở giữa */
-                        checked:border-primary
-                        after:content-[''] after:w-2 after:h-2 after:bg-primary after:rounded-xs
-                        after:scale-0 checked:after:scale-100 after:transition-transform
-                        
-                        /* Loại bỏ các vòng highlight mặc định gây xấu */
-                        focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/50
-                      "
-                      />
-                      <span className="font-body-sm text-on-surface group-hover:text-primary transition-colors">
-                        {trait}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              {/* Basic Lifestyle Filters */}
+
+              {/* ĐÃ BỎ Core Temperament */}
+              {/* ĐÃ BỎ Acreage khỏi Space Requirement */}
+
               {[
                 {
                   key: "size",
@@ -294,7 +219,7 @@ export function BreedEncyclopedia() {
                 {
                   key: "spaceRequirement",
                   title: "Habitat Size",
-                  options: ["Apartment", "Small Yard", "Large Yard", "Acreage"],
+                  options: ["Apartment", "Small Yard", "Large Yard"],
                 },
                 {
                   key: "barkingLevel",
@@ -328,19 +253,7 @@ export function BreedEncyclopedia() {
                           onChange={() =>
                             handleSingleFilterChange(filterBlock.key, opt)
                           }
-                          className="
-                          appearance-none w-4 h-4 cursor-pointer rounded-sm
-                          border border-primary/40 bg-surface
-                          relative flex items-center justify-center
-                          
-                          /* Hiệu ứng khi được Check: Đổi viền và thêm dấu chấm/vạch ở giữa */
-                          checked:border-primary
-                          after:content-[''] after:w-2 after:h-2 after:bg-primary after:rounded-xs
-                          after:scale-0 checked:after:scale-100 after:transition-transform
-                          
-                          /* Loại bỏ các vòng highlight mặc định gây xấu */
-                          focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/50
-                        "
+                          className="appearance-none w-4 h-4 cursor-pointer rounded-sm border border-primary/40 bg-surface relative flex items-center justify-center checked:border-primary after:content-[''] after:w-2 after:h-2 after:bg-primary after:rounded-xs after:scale-0 checked:after:scale-100 after:transition-transform focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/50"
                         />
                         <span className="font-body-sm text-on-surface group-hover:text-primary transition-colors">
                           {opt}
@@ -352,15 +265,15 @@ export function BreedEncyclopedia() {
               ))}
             </aside>
 
-            {/* Grid Canvas & Pagination */}
+            {/* Grid 3 CỘT (Vì Layout đã rộng ra) */}
             <div className="md:col-span-9 flex flex-col gap-12">
               {loading ? (
                 <div className="w-full py-24 flex justify-center items-center">
                   <div className="w-8 h-8 border-2 border-secondary/20 border-t-primary rounded-full animate-spin"></div>
                 </div>
               ) : breeds.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {breeds.map((breed, index) => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {breeds.map((breed) => (
                     <article
                       key={breed.breedId}
                       onClick={() => navigate(`/breeds/${breed.breedId}`)}
@@ -382,7 +295,7 @@ export function BreedEncyclopedia() {
                         </div>
                       </div>
                       <div className="flex flex-col gap-1">
-                        <h2 className="font-headline-lg-mobile md:font-headline-lg text-primary group-hover:text-surface-tint transition-colors">
+                        <h2 className="font-headline-lg-mobile md:font-headline-lg text-[22px] text-primary group-hover:text-surface-tint transition-colors">
                           {breed.name}
                         </h2>
                         <p className="font-body-sm text-on-surface-variant italic line-clamp-2">
@@ -391,7 +304,7 @@ export function BreedEncyclopedia() {
                       </div>
                       <div className="mt-auto border-t border-secondary/20 pt-3 flex justify-between items-center">
                         <span className="font-body-sm text-on-surface-variant uppercase tracking-widest text-[11px]">
-                          View Archival Record
+                          View Record
                         </span>
                         <span className="material-symbols-outlined text-secondary/50 group-hover:text-primary transition-colors">
                           arrow_forward
@@ -411,7 +324,6 @@ export function BreedEncyclopedia() {
                 </div>
               )}
 
-              {/* Pagination */}
               {pagination && pagination.totalPages > 1 && !loading && (
                 <div className="flex justify-between items-center border-t border-secondary/20 pt-6 mt-4">
                   <button
@@ -443,6 +355,7 @@ export function BreedEncyclopedia() {
           </div>
         </section>
       </main>
+      <Footer></Footer>
     </div>
   );
 }

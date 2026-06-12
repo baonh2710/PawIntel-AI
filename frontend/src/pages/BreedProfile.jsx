@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { Footer } from "@/components/footer";
 import axios from "axios";
 
 const API_BASE = "http://localhost:5000/api/v1";
@@ -102,14 +103,19 @@ export function BreedProfile() {
     );
 
   const calculateProgress = (val) => `${((val || 0) / 5) * 100}%`;
-  const heroImage = breed.visualArchives?.[0]?.url || breed.thumbnail;
-  const vintageImage = breed.visualArchives?.[1]?.url || breed.thumbnail;
+
+  // Tách mảng hình ảnh để đan xen và lấy Caption tương ứng
+  const visualAssets = breed.visualArchives || [];
+  const heroImage = visualAssets[0]?.url || breed.thumbnail;
+  const vintageImg1 = visualAssets[1];
+  const vintageImg2 = visualAssets[2];
+  const vintageImg3 = visualAssets[3];
+  const remainingImages = visualAssets.slice(4);
 
   return (
     <div className="bg-surface text-on-surface font-body-md min-h-screen flex flex-col antialiased">
-      {/* Header / Navbar */}
       <header className="bg-surface border-b border-secondary/10 sticky top-0 z-50">
-        <div className="flex justify-between items-center px-margin-mobile md:px-margin-desktop py-5 max-w-container-max mx-auto w-full">
+        <div className="flex justify-between items-center px-margin-mobile md:px-margin-desktop py-5 max-w-[1280px] mx-auto w-full">
           <div
             className="font-headline-lg text-primary tracking-tighter cursor-pointer"
             onClick={() => navigate("/")}
@@ -133,11 +139,46 @@ export function BreedProfile() {
         </div>
       </header>
 
-      <main className="w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-12 flex flex-col gap-20">
+      {/* 1. HERO SECTION */}
+      <section className="w-full relative h-[65vh] overflow-hidden group border-b border-secondary/20 shadow-none">
+        <img
+          alt={breed.name}
+          className="w-full h-full object-cover object-[center_30%] group-hover:scale-105 transition-transform duration-[20s] ease-out"
+          src={heroImage}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/40 to-transparent opacity-90 pointer-events-none"></div>
+      </section>
+
+      <section className="flex flex-col gap-6 items-center text-center -mt-16 relative z-10 px-margin-mobile md:px-margin-desktop max-w-[1280px] mx-auto">
+        <div className="inline-flex items-center px-5 py-1.5 bg-[#e3a392] text-white rounded-sm font-label-md uppercase tracking-[0.15em] text-[11px] shadow-none border border-transparent">
+          {breed.origin || "Unknown Origin"}
+        </div>
+        <h1 className="font-headline-xl text-[72px] leading-none text-on-surface tracking-tight mt-2">
+          {breed.name}
+        </h1>
+        <p className="max-w-4xl text-on-surface-variant font-body-md text-[20px] leading-[1.8] text-center italic opacity-90 mt-4">
+          {breed.description}
+        </p>
+
+        {breed.coreTraits && (
+          <div className="flex flex-wrap justify-center gap-3 mt-6">
+            {breed.coreTraits.map((trait, idx) => (
+              <span
+                key={idx}
+                className="px-5 py-2 border border-primary/20 text-primary font-label-md uppercase tracking-widest text-[10px] rounded-full bg-primary/5 shadow-none"
+              >
+                {trait}
+              </span>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <main className="w-full max-w-[1280px] mx-auto px-margin-mobile md:px-margin-desktop py-16 flex flex-col gap-24">
         {/* Navigation Back */}
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center self-start gap-2 font-label-md uppercase tracking-[0.2em] text-secondary/60 hover:text-primary transition-all bg-transparent border-none cursor-pointer -mb-10 group shadow-none"
+          className="flex items-center self-start gap-2 font-label-md uppercase tracking-[0.2em] text-secondary/60 hover:text-primary transition-all bg-transparent border-none cursor-pointer -mb-8 shadow-none"
         >
           <span className="material-symbols-outlined text-sm group-hover:-translate-x-1 transition-transform">
             arrow_back
@@ -145,49 +186,7 @@ export function BreedProfile() {
           {isFromIdentify ? "Return to Identification" : "Return to Archive"}
         </button>
 
-        {/* 1. HERO SECTION - CỰC KỲ ĐẬM CHẤT TẠP CHÍ */}
-        <section className="flex flex-col gap-10 items-center text-center">
-          {/* Thay bg-tertiary bằng mã màu terracotta dạng gạch nung [ #e3735e ] hoặc [ #c65a39 ] */}
-          <div className="inline-flex items-center px-5 py-1.5 bg-[#e3a392] text-white rounded-sm font-label-md uppercase tracking-[0.15em] text-[11px]">
-            {breed.origin || "Unknown Origin"}
-          </div>
-
-          {/* Tên to bản, quyền lực */}
-          <h1 className="font-headline-xl text-[64px] leading-none text-on-surface tracking-tight">
-            {breed.name}
-          </h1>
-
-          {/* Hero Image với Matte Frame (Khung bảo tàng) */}
-          <div className="w-full p-2 bg-surface-container-lowest border border-secondary/10 rounded-lg shadow-none overflow-hidden">
-            <div className="w-full aspect-[21/9] rounded overflow-hidden">
-              <img
-                alt={breed.name}
-                className="w-full h-full object-cover"
-                src={heroImage}
-              />
-            </div>
-          </div>
-
-          <p className="max-w-3xl text-on-surface-variant font-body-md text-[18px] leading-[1.8] text-center italic opacity-90">
-            {breed.description}
-          </p>
-
-          {/* Traits Styled as Editorial Badges */}
-          {breed.coreTraits && (
-            <div className="flex flex-wrap justify-center gap-3">
-              {breed.coreTraits.map((trait, idx) => (
-                <span
-                  key={idx}
-                  className="px-5 py-2 border border-primary/20 text-primary font-label-md uppercase tracking-widest text-[10px] rounded-full bg-primary/5"
-                >
-                  {trait}
-                </span>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* 2. PHYSICAL STATS - Tonal Layering */}
+        {/* 2. PHYSICAL STATS */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {[
             {
@@ -208,12 +207,12 @@ export function BreedProfile() {
           ].map((stat, i) => (
             <div
               key={i}
-              className="bg-surface-container-low border border-secondary/10 rounded p-10 flex flex-col items-center justify-center text-center gap-3"
+              className="bg-surface-container-low border border-secondary/10 rounded p-10 flex flex-col items-center justify-center text-center gap-3 shadow-none"
             >
               <span className="font-label-md text-secondary/60 uppercase tracking-[0.2em] text-[11px]">
                 {stat.label}
               </span>
-              <span className="font-headline-lg text-[40px] text-primary-container">
+              <span className="font-headline-lg text-[40px] text-primary-container lining-nums">
                 {stat.val?.split(" ")[0]}{" "}
                 <span className="text-body-sm font-normal text-on-surface-variant/50">
                   {stat.unit}
@@ -223,60 +222,107 @@ export function BreedProfile() {
           ))}
         </section>
 
-        {/* 3. ARCHIVAL ORIGINS - Narrative Driven */}
-        <section className="flex flex-col md:flex-row gap-16 items-center border-y border-secondary/10 py-16">
-          <div className="w-full md:w-1/2 p-2 bg-surface-container-lowest border border-secondary/10 rounded-lg">
-            <img
-              alt="Vintage record"
-              className="w-full aspect-[4/3] object-cover grayscale sepia-[.3] brightness-[.9] rounded"
-              src={vintageImage}
-            />
+        {/* 3. ARCHIVAL ORIGINS - BỐ CỤC SO LE KÈM CAPTION */}
+        <section className="grid grid-cols-1 md:grid-cols-12 gap-16 border-y border-secondary/10 py-20">
+          {/* Cột Trái: Ảnh 1 và 3 */}
+          <div className="md:col-span-5 flex flex-col gap-12">
+            {vintageImg1 && (
+              <div className="w-full p-2 bg-surface-container-lowest border border-secondary/10 rounded-lg shadow-none">
+                <img
+                  alt="Vintage record 1"
+                  className="w-full aspect-[4/3] object-cover grayscale sepia-[.3] brightness-[.9] rounded"
+                  src={vintageImg1.url}
+                />
+                {vintageImg1.caption && (
+                  <p className="mt-4 mb-2 px-4 text-center font-label-md text-[11px] uppercase tracking-widest text-secondary/80 leading-relaxed">
+                    {vintageImg1.caption}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {vintageImg3 && (
+              <div className="w-full p-2 bg-surface-container-lowest border border-secondary/10 rounded-lg mt-8 shadow-none">
+                <img
+                  alt="Vintage record 3"
+                  className="w-full aspect-square object-cover grayscale sepia-[.3] brightness-[.9] rounded"
+                  src={vintageImg3.url}
+                />
+                {vintageImg3.caption && (
+                  <p className="mt-4 mb-2 px-4 text-center font-label-md text-[11px] uppercase tracking-widest text-secondary/80 leading-relaxed">
+                    {vintageImg3.caption}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
-          <div className="w-full md:w-1/2 flex flex-col gap-8 text-left">
-            <h2 className="font-headline-lg text-[36px] text-on-surface">
+
+          {/* Cột Phải: Chữ và Ảnh 2 đan xen */}
+          <div className="md:col-span-7 flex flex-col gap-10 text-left">
+            <h2 className="font-headline-lg text-[40px] text-on-surface mb-2">
               Archival Origins
             </h2>
-            <p className="font-body-md text-on-surface-variant leading-relaxed text-[17px]">
+            <p className="font-body-md text-on-surface-variant leading-relaxed text-[18px]">
               {breed.historySnippet}
             </p>
+
             {breed.breedSpecificFacts?.map((fact, idx) => (
-              <blockquote
-                key={idx}
-                className="italic border-l-3 border-tertiary pl-8 py-2 text-on-surface-variant font-body-md text-[18px] opacity-80 leading-relaxed"
-              >
-                "{fact}"
-              </blockquote>
+              <React.Fragment key={idx}>
+                <blockquote className="italic border-l-3 border-tertiary pl-8 py-2 text-on-surface-variant font-body-md text-[20px] opacity-90 leading-relaxed">
+                  "{fact}"
+                </blockquote>
+
+                {/* Chèn Ảnh thứ 2 vào ngay sau Fact số 2 (idx === 1) kèm Caption */}
+                {idx === 1 && vintageImg2 && (
+                  <div className="w-full my-6 p-2 bg-surface-container-lowest border border-secondary/10 rounded-lg shadow-none">
+                    <img
+                      alt="Vintage record 2"
+                      className="w-full aspect-[16/9] object-cover grayscale sepia-[.3] brightness-[.9] rounded"
+                      src={vintageImg2.url}
+                    />
+                    {vintageImg2.caption && (
+                      <p className="mt-4 mb-2 px-4 text-center font-label-md text-[11px] uppercase tracking-widest text-secondary/80 leading-relaxed">
+                        {vintageImg2.caption}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </React.Fragment>
             ))}
           </div>
         </section>
 
-        {/* 4. TAXONOMY & ANALYTICS */}
-        <section className="flex flex-col gap-10">
+        {/* 4. TAXONOMY & ANALYTICS - TYPOGRAPHY LỚN HƠN */}
+        <section className="flex flex-col gap-12">
           <h2 className="font-headline-lg text-center text-[36px] text-on-surface">
             Biological & Behavioral Taxonomy
           </h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
             {/* Qualitative Sidebar */}
-            <div className="bg-surface-container-low border border-secondary/10 rounded p-10 flex flex-col gap-8 shadow-none">
-              <h3 className="font-label-md text-secondary uppercase tracking-[0.2em] border-b border-secondary/10 pb-5 text-[12px]">
+            <div className="bg-surface-container-low border border-secondary/10 rounded p-12 flex flex-col gap-10 shadow-none">
+              <h3 className="font-label-md text-secondary uppercase tracking-[0.2em] border-b border-secondary/10 pb-5 text-[14px]">
                 Lifestyle Classification
               </h3>
-              <div className="grid grid-cols-2 gap-x-10 gap-y-8">
+              <div className="grid grid-cols-2 gap-x-10 gap-y-10">
                 {Object.entries(breed.lifestyleFilters || {}).map(
                   ([key, value]) => {
                     const def = lifestyleDefinitions[key] || { label: key };
                     return (
                       <div
                         key={key}
-                        className="flex flex-col gap-2 group relative"
+                        className="flex flex-col gap-3 group relative"
                       >
-                        <span className="font-label-md text-secondary/60 uppercase tracking-widest text-[10px] cursor-help border-b border-dashed border-secondary/30 w-fit">
+                        {/* Cỡ chữ Label tăng lên 12px */}
+                        <span className="font-label-md text-secondary/70 uppercase tracking-widest text-[12px] cursor-help border-b border-dashed border-secondary/30 w-fit pb-0.5">
                           {def.label}
                         </span>
-                        <span className="font-body-md text-on-surface text-[16px] font-medium">
+                        {/* Cỡ chữ Value tăng lên 20px */}
+                        <span className="font-body-md text-on-surface text-[20px] font-medium">
                           {value}
                         </span>
-                        <div className="absolute z-30 bottom-full left-0 mb-3 w-56 bg-secondary text-surface-container-lowest rounded p-3 text-[12px] leading-tight hidden group-hover:block transition-all shadow-xl">
+
+                        {/* Tooltip to hơn */}
+                        <div className="absolute z-30 bottom-full left-0 mb-3 w-64 bg-secondary text-surface-container-lowest rounded p-4 text-[14px] leading-relaxed hidden group-hover:block transition-all shadow-xl">
                           {def.desc}
                         </div>
                       </div>
@@ -287,11 +333,11 @@ export function BreedProfile() {
             </div>
 
             {/* Quantitative Analytics */}
-            <div className="bg-surface-container border border-secondary/10 rounded p-10 flex flex-col gap-8 shadow-none">
-              <h3 className="font-label-md text-secondary uppercase tracking-[0.2em] border-b border-secondary/10 pb-5 text-[12px]">
+            <div className="bg-surface-container border border-secondary/10 rounded p-12 flex flex-col gap-10 shadow-none">
+              <h3 className="font-label-md text-secondary uppercase tracking-[0.2em] border-b border-secondary/10 pb-5 text-[14px]">
                 Analytical Metrics
               </h3>
-              <div className="flex flex-col gap-7">
+              <div className="flex flex-col gap-8">
                 {Object.entries(breed.comparisonMetrics || {}).map(
                   ([key, value]) => {
                     const def = metricDefinitions[key] || { label: key };
@@ -301,22 +347,25 @@ export function BreedProfile() {
                         className="flex flex-col gap-3 group relative"
                       >
                         <div className="flex justify-between items-end">
-                          <span className="font-label-md text-on-surface uppercase tracking-widest text-[11px] cursor-help border-b border-dashed border-secondary/30">
+                          {/* Cỡ chữ Label tăng lên 13px */}
+                          <span className="font-label-md text-on-surface uppercase tracking-widest text-[13px] cursor-help border-b border-dashed border-secondary/30 pb-0.5">
                             {def.label}
                           </span>
-                          <span className="font-label-md text-primary font-bold">
+                          <span className="font-label-md text-primary font-bold lining-nums text-[16px]">
                             {value} / 5
                           </span>
                         </div>
-                        <div className="w-full bg-secondary/10 h-1 rounded-full overflow-hidden">
+                        <div className="w-full bg-secondary/10 h-2 rounded-full overflow-hidden shadow-none">
                           <div
                             className="bg-primary h-full rounded-full transition-all duration-1000 ease-out"
                             style={{ width: calculateProgress(value) }}
                           ></div>
                         </div>
-                        <div className="absolute z-30 bottom-full left-0 mb-3 w-64 bg-primary text-surface-container-lowest rounded p-4 text-[12px] leading-normal hidden group-hover:block shadow-xl">
+
+                        {/* Tooltip to hơn */}
+                        <div className="absolute z-30 bottom-full left-0 mb-3 w-72 bg-primary text-surface-container-lowest rounded p-5 text-[15px] leading-relaxed hidden group-hover:block shadow-xl">
                           <p className="mb-2 font-medium">{def.desc}</p>
-                          <p className="opacity-70 italic text-[10px]">
+                          <p className="opacity-70 italic text-[12px]">
                             {def.scale}
                           </p>
                         </div>
@@ -333,7 +382,7 @@ export function BreedProfile() {
         <section className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
           <div className="flex flex-col gap-8">
             <h3 className="font-headline-lg text-[32px]">Care Advice</h3>
-            <div className="bg-surface-container border border-secondary/10 rounded p-8 flex flex-col gap-8">
+            <div className="bg-surface-container border border-secondary/10 rounded p-8 flex flex-col gap-8 shadow-none">
               {breed.careAdvice?.map((advice, idx) => (
                 <div
                   key={idx}
@@ -351,7 +400,7 @@ export function BreedProfile() {
           </div>
           <div className="flex flex-col gap-8">
             <h3 className="font-headline-lg text-[32px]">Health Risks</h3>
-            <div className="bg-[#E3A392]/5 border border-tertiary/20 rounded p-8 flex flex-col gap-6">
+            <div className="bg-[#E3A392]/5 border border-tertiary/20 rounded p-8 flex flex-col gap-6 shadow-none">
               <p className="font-body-md text-on-surface-variant leading-relaxed opacity-80 italic">
                 Historical records indicate potential pathological
                 vulnerabilities.
@@ -370,44 +419,51 @@ export function BreedProfile() {
           </div>
         </section>
 
-        {/* 6. VISUAL ARCHIVES */}
-        {breed.visualArchives && breed.visualArchives.length > 0 && (
-          <section className="flex flex-col gap-10 border-t border-secondary/10 pt-20">
+        {/* 6. FULL VISUAL ARCHIVES GALLERY (Magazine Style) */}
+        {remainingImages && remainingImages.length > 0 && (
+          <section className="flex flex-col gap-12 border-t border-secondary/10 pt-20">
             <h2 className="font-headline-lg text-center text-[36px]">
-              Visual Archives
+              Archival Compendium
             </h2>
             <div
-              className={`grid gap-8 w-full ${
-                breed.visualArchives.length === 1
-                  ? "grid-cols-1 max-w-2xl mx-auto"
-                  : breed.visualArchives.length === 2
-                    ? "grid-cols-1 sm:grid-cols-2 max-w-4xl mx-auto"
+              className={`grid gap-10 w-full ${
+                remainingImages.length === 1
+                  ? "grid-cols-1 max-w-3xl mx-auto"
+                  : remainingImages.length === 2
+                    ? "grid-cols-1 sm:grid-cols-2 max-w-5xl mx-auto"
                     : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
               }`}
             >
-              {breed.visualArchives.map((img, idx) => (
+              {remainingImages.map((img, idx) => (
                 <div
                   key={idx}
-                  className="flex flex-col gap-3 group cursor-pointer"
+                  className="flex flex-col gap-4 group cursor-pointer"
                 >
-                  {/* Khung chứa ảnh */}
-                  <div className="w-full aspect-square rounded-lg bg-surface-container overflow-hidden border border-secondary/10">
+                  <div className="w-full aspect-[4/5] rounded-lg bg-surface-container overflow-hidden border border-secondary/10 shadow-none">
+                    {/* Ảnh full màu cho gallery dưới cùng */}
                     <img
                       src={img.url}
                       alt={img.caption || "Archival documentation"}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 ease-in-out"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-in-out"
                     />
                   </div>
-                  {/* Dòng chữ caption hồ sơ lưu trữ nhỏ mịn đặt dưới ảnh */}
-                  <p className="font-label-md text-[11px] uppercase tracking-[0.15em] text-on-surface-variant/70 leading-relaxed group-hover:text-primary transition-colors line-clamp-2">
-                    {img.caption}
-                  </p>
+                  {img.caption && (
+                    <div className="flex gap-3 px-2">
+                      <span className="font-headline-lg text-[24px] text-tertiary/30 leading-none pt-1">
+                        {(idx + 1).toString().padStart(2, "0")}
+                      </span>
+                      <p className="font-body-md text-[15px] text-on-surface-variant/80 leading-relaxed group-hover:text-primary transition-colors">
+                        {img.caption}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           </section>
         )}
       </main>
+      <Footer></Footer>
     </div>
   );
 }

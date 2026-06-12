@@ -1,23 +1,17 @@
-import { BaseRepository } from '../base.repository.js';
-import mongoose from 'mongoose';
-
-// Giả định Model FunFact của bạn tên là 'FunFact', nếu khác hãy điều chỉnh import
-const FunFactModel = mongoose.models.FunFact || mongoose.model('FunFact', new mongoose.Schema({}));
+import { BaseRepository } from "../base.repository.js";
+import { FunFact } from "../../models/encyclopedia/FunFact.model.js";
 
 export class FunFactRepository extends BaseRepository {
   constructor() {
-    super(FunFactModel);
+    super(FunFact);
   }
 
-  async getRandomFunFact() {
-    const total = await this.countDocuments({});
-    if (total === 0) return null;
+  async getRandomFact() {
+    // Sử dụng $sample để lấy ngẫu nhiên 1 bản ghi với hiệu suất O(1)
+    const randomFacts = await this.model.aggregate([{ $sample: { size: 1 } }]);
 
-    const randomIndex = Math.floor(Math.random() * total);
-    // Sử dụng cơ chế skip để bốc ngẫu nhiên 1 câu tăng tính tương tác
-    const results = await this.model.find({}).skip(randomIndex).limit(1).lean();
-    
-    return results.length > 0 ? results[0] : null;
+    // Aggregate trả về mảng, ta lấy phần tử đầu tiên nếu có
+    return randomFacts.length > 0 ? randomFacts[0] : null;
   }
 }
 
