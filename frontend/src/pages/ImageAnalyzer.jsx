@@ -391,6 +391,12 @@ export function ImageAnalyzer() {
 
                         {results.slice(1, 3).map((match, idx) => (
                           <article
+                            onClick={() =>
+                              match.dbSynced &&
+                              navigate(`/breeds/${match.details?.breedId}`, {
+                                state: { from: "identify" },
+                              })
+                            }
                             key={idx}
                             className={`relative bg-surface-container-lowest border-b border-secondary/10 py-5 px-4 flex justify-between items-center transition-colors duration-300 group ${
                               match.dbSynced
@@ -398,15 +404,7 @@ export function ImageAnalyzer() {
                                 : "opacity-60 cursor-not-allowed"
                             }`}
                           >
-                            <div
-                              className="flex flex-1 items-center gap-4 min-w-0"
-                              onClick={() =>
-                                match.dbSynced &&
-                                navigate(`/breeds/${match.details?.breedId}`, {
-                                  state: { from: "identify" },
-                                })
-                              }
-                            >
+                            <div className="flex flex-1 items-center gap-4 min-w-0">
                               <div className="w-12 h-12 bg-surface-container-high border border-secondary/10 flex items-center justify-center text-secondary shrink-0 rounded-sm group-hover:text-primary transition-colors">
                                 <span className="material-symbols-outlined text-[20px] font-light">
                                   {match.dbSynced ? "search" : "visibility_off"}
