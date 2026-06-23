@@ -90,9 +90,11 @@ export class AnalyzeService {
         "AI image diagnostics and multi-breed profile mapping successful.",
       analyzedAt: new Date(),
       predictions: populatedPredictions,
-      systemFunFact: randomFact
-        ? randomFact
-        : "Dogs have three eyelids, including one that keeps their eyes moist and protected!",
+
+      // FIX LỖI Ở ĐÂY: Trỏ thẳng vào .content thay vì trả về nguyên Object
+      systemFunFact: randomFact?.content
+        ? randomFact.content
+        : "Dogs possess an incredible olfactory sense; their capability to analyze scent profiles is up to 100,000 times more acute than a human's.",
     };
   }
 }
